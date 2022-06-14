@@ -1,26 +1,26 @@
 
 import SwiftUI
 
-struct RootView: UIViewControllerRepresentable {
+public struct RootView: UIViewControllerRepresentable {
 
     let routings: RoutingCollection
 
-    init(@RoutingBuilder routings: () -> RoutingCollection) {
+    public init(@RoutingBuilder routings: () -> RoutingCollection) {
         self.routings = routings()
     }
 
-    func makeUIViewController(context: Context) -> ViewController {
+    public func makeUIViewController(context: Context) -> ViewController {
         context.coordinator.containerViewController
     }
 
-    func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+    public func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
     }
 
-    func makeCoordinator() -> Coordinator {
+    public func makeCoordinator() -> Coordinator {
         .init(routes: routings)
     }
 
-    class Coordinator: RouterDelegate, Navigator {
+    public class Coordinator: RouterDelegate, Navigator {
 
         var router: ConcreteRouter
         var currentPath = "/"
@@ -45,13 +45,13 @@ struct RootView: UIViewControllerRepresentable {
         var containerViewController = ViewController()
         private let contentPool = ContentViewControllerPool()
 
-        func roopback() {
-            print("roopback")
+        public func roopback() {
+            // TODO: Launcher filter
+            NotificationCenter.echeveria
+                .post(name: .RetapLauncher, object: nil, userInfo: ["path": currentPath])
         }
 
-        func transition<Content>(with transition: RoutingTransition, view: Content) where Content: View {
-
-            print(transition)
+        public func transition<Content>(with transition: RoutingTransition, view: Content) where Content: View {
 
             defer { currentPath = transition.to }
 
@@ -75,27 +75,24 @@ struct RootView: UIViewControllerRepresentable {
             }
         }
 
-        func move(to path: String) {
+        public func move(to path: String) {
             router.resolve(from: currentPath, to: path, delegate: self)
         }
     }
 
-    class ViewController: UIViewController { // , TransitionCallback {
+    public class ViewController: UIViewController {
 
         weak var contentViewController: UIViewController? = nil {
             didSet { refreshContent(oldViewController: oldValue) }
         }
         weak var coverViewController: UIViewController? = nil
 
-//        private var transitionRunner: AnimationRunner? = nil
-//        private var transition: TransitionContainer? = nil
-
         var hasTabBar: Bool = false
         var tabViewController = ContentViewController<ConductorTabView>(rootView: .init(accessors: [], path: .constant("")))
         var containerView = UIView()
         var contentCenterX: NSLayoutConstraint? = nil
 
-        override func viewDidLoad() {
+        public override func viewDidLoad() {
             super.viewDidLoad()
             view.translatesAutoresizingMaskIntoConstraints = false
             containerView.translatesAutoresizingMaskIntoConstraints = false
@@ -109,7 +106,7 @@ struct RootView: UIViewControllerRepresentable {
             containerView.addSubview(tabViewController.view)
         }
 
-        override func didMove(toParent parent: UIViewController?) {
+        public override func didMove(toParent parent: UIViewController?) {
             super.didMove(toParent: parent)
             if let parent = parent {
                 NSLayoutConstraint.deactivate(tabViewController.view.constraints)
@@ -166,22 +163,33 @@ struct RootView: UIViewControllerRepresentable {
         }
 
         func openCover<Content>(viewController vc: UIHostingController<Content>) where Content: View {
-//            let transition = TransitionContainer(from: containerView, to: vc.view, duration: 0.5, animator: CoverAnimator())
-//            DispatchQueue.main.async {
-//                transition.start()
-//            }
-//            self.transition = transition
-//
-//            view.addSubview(transition.containerView)
-//            NSLayoutConstraint.activate([
-//                transition.containerView.topAnchor.constraint(equalTo: view.topAnchor),
-//                transition.containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-//                transition.containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-//                transition.containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-//            ])
+            coverViewController = vc
+
+            addChild(vc)
+            view.addSubview(vc.view)
+
+            vc.view.translatesAutoresizingMaskIntoConstraints = false
+
+            let animationConstraint = vc.view.topAnchor.constraint(equalTo: view.topAnchor)
+            NSLayoutConstraint.activate([
+                vc.view.heightAnchor.constraint(equalTo: view.heightAnchor),
+                animationConstraint,
+                vc.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                vc.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            ])
+
+            animationConstraint.constant = view.frame.height
+            view.layoutIfNeeded()
+
+            UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseOut, animations: {
+                animationConstraint.constant = 0
+                self.view.layoutIfNeeded()
+            }, completion: { _ in
+
+            })
         }
 
-        override func viewWillLayoutSubviews() {
+        public override func viewWillLayoutSubviews() {
             super.viewWillLayoutSubviews()
             tabViewController.view.isHidden = !hasTabBar
         }
@@ -190,16 +198,6 @@ struct RootView: UIViewControllerRepresentable {
 
             tryLayoutContent()
         }
-
-//        func transitionWillStart(container: TransitionContainer) {
-//        }
-//
-//        func transitionDidFinish(container: TransitionContainer) {
-//            if container.sourceView == containerView { // Container View is always in view
-//                view.addSubview(containerView)
-//                tryLayoutContainer()
-//            }
-//        }
 
         private func tryLayoutContainer() {
 
@@ -288,6 +286,36 @@ extension EnvironmentValues {
         set { self[CurrentPathEnvironmentKey.self] = newValue }
     }
 }
+
+// MARK: - Launcher route
+
+public struct Launcher<RouteObject>: RoutingElement {
+
+    let title: LocalizedStringKey
+    let icon: Image
+    let path: String
+    let route: RouteObject
+
+    public init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Page<Content>) where RouteObject == Page<Content> {
+        self.title = title
+        self.icon = .init(systemName: systemImage)
+        self.path = route().path
+        self.route = route()
+    }
+
+    init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Cover<Content>) where RouteObject == Cover<Content> {
+        self.title = title
+        self.icon = .init(systemName: systemImage)
+        self.path = route().path
+        self.route = route()
+    }
+
+    public func apply(router: Router) {
+        router.registerTab(accessor: .init(title: title, image: icon, path: path))
+        (route as? RoutingElement)?.apply(router: router)
+    }
+}
+
 
 // MARK: - Content View Controller Pool
 

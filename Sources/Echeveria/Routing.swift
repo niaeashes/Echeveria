@@ -74,7 +74,7 @@ class ConcreteRouter: Router {
     }
 }
 
-protocol Router {
+public protocol Router {
     func register(route: Route)
     func registerTab(accessor: RouteAccessor)
     func resolve(from: String, to: String, delegate: RouterDelegate)
@@ -85,7 +85,7 @@ public protocol RouterDelegate {
     func transition<Content>(with: RoutingTransition, view: Content) where Content: View
 }
 
-protocol Route {
+public protocol Route {
     var path: String { get }
     func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate)
 }
@@ -196,25 +196,25 @@ struct RoutingPath: Hashable {
 
 // MARK: - Routing Elements & DSL
 
-protocol RoutingElement {
+public protocol RoutingElement {
     func apply(router: Router)
 }
 
-struct Page<Content: View>: Route, RoutingElement {
+public struct Page<Content: View>: Route, RoutingElement {
 
-    init(path: String, @ViewBuilder content: @escaping (RoutingTransition) -> Content) {
+    public init(path: String, @ViewBuilder content: @escaping (RoutingTransition) -> Content) {
         self.path = path
         self.content = content
     }
 
-    var path: String
+    public var path: String
     let content: (RoutingTransition) -> Content
 
-    func apply(router: Router) {
+    public func apply(router: Router) {
         router.register(route: self)
     }
 
-    func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
+    public func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
         delegate.transition(with: transition, view: content(transition))
     }
 }
@@ -235,36 +235,6 @@ struct Cover<Content: View>: Route, RoutingElement {
 
     func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
         delegate.transition(with: transition.convert(type: .cover), view: content(transition))
-    }
-}
-
-struct Launcher<RouteObject: Route & RoutingElement>: RoutingElement {
-
-    let title: LocalizedStringKey
-    let icon: Image
-    let route: RouteObject
-
-    init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Page<Content>) where RouteObject == Page<Content> {
-        self.title = title
-        self.icon = .init(systemName: systemImage)
-        self.route = route()
-    }
-
-    init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Stack<Content>) where RouteObject == Stack<Content> {
-        self.title = title
-        self.icon = .init(systemName: systemImage)
-        self.route = route()
-    }
-
-    init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Cover<Content>) where RouteObject == Cover<Content> {
-        self.title = title
-        self.icon = .init(systemName: systemImage)
-        self.route = route()
-    }
-
-    func apply(router: Router) {
-        router.registerTab(accessor: .init(title: title, image: icon, path: route.path))
-        route.apply(router: router)
     }
 }
 
@@ -318,17 +288,17 @@ struct Namespace: RoutingElement {
     }
 }
 
-struct RoutingCollection: RoutingElement {
+public struct RoutingCollection: RoutingElement {
     let elements: Array<RoutingElement>
 
-    func apply(router: Router) {
+    public func apply(router: Router) {
         elements.forEach { $0.apply(router: router) }
     }
 }
 
 @resultBuilder
-struct RoutingBuilder {
-    static func buildBlock(_ components: RoutingElement...) -> RoutingCollection {
+public struct RoutingBuilder {
+    public static func buildBlock(_ components: RoutingElement...) -> RoutingCollection {
         .init(elements: components)
     }
 }
