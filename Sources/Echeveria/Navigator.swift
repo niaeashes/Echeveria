@@ -4,11 +4,22 @@
 //
 
 import SwiftUI
+import Combine
 
 // MARK: - Navigator Protocol
 
-protocol Navigator {
+// TODO: Rename
+public protocol Navigator {
     func move(to: String)
+}
+
+public extension Navigator {
+
+    func notification(for name: Notification.Name) -> AnyPublisher<Notification, Never> {
+        NotificationCenter.echeveria
+            .publisher(for: name)
+            .eraseToAnyPublisher()
+    }
 }
 
 // MARK: - View Modifiers
@@ -37,7 +48,7 @@ struct NavigateModifier: ViewModifier {
 }
 
 extension View {
-    func navigate(to path: String) -> some View {
+    public func navigate(to path: String) -> some View {
         modifier(NavigateModifier(path: path))
     }
 }
@@ -49,7 +60,7 @@ struct NavigatorKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    var navigator: Navigator? {
+    public var navigator: Navigator? {
         get { self[NavigatorKey.self] }
         set { self[NavigatorKey.self] = newValue }
     }

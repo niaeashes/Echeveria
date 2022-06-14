@@ -30,14 +30,14 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
         context.coordinator.router = router
         context.coordinator.viewController = uiViewController
-        //uiViewController.rootView = content().modifier(NavigatorModifier(navigator: context.coordinator))
+        uiViewController.rootView = content().modifier(NavigatorModifier(navigator: context.coordinator))
     }
 
     func makeCoordinator() -> Coordinator {
         .init(router: router, rootPath: rootPath)
     }
 
-    class Coordinator: Navigator {
+    class Coordinator: Navigator, RouterDelegate {
 
         var router: Router
         var path: String
@@ -50,17 +50,26 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
         }
 
         func move(to path: String) {
-            guard let viewController = viewController else { return }
-            router.resolve(from: self.path, to: path, delegate: viewController)
+            router.resolve(from: self.path, to: path, delegate: self)
+        }
+
+        func roopback() {
+        }
+
+        func transition<Content>(with transition: RoutingTransition, view: Content) where Content : View {
+            path = transition.to
+            viewController?.push(view: view)
         }
     }
 
-    class StackViewController: UIViewController, RouterDelegate {
+    class StackViewController: UIViewController {
 
         let rootPath: String
         var stacks: Array<UIViewController> = []
 
-        var rootView: ModifiedContent<Content, NavigatorModifier>
+        var rootView: ModifiedContent<Content, NavigatorModifier> {
+            didSet { (stacks.first as? UIHostingController<ModifiedContent<Content, NavigatorModifier>>)?.rootView = rootView }
+        }
 
         weak var currentViewController: UIViewController? = nil
         var currentCenterX: NSLayoutConstraint? = nil
@@ -69,6 +78,8 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
         var transitionCenterX: NSLayoutConstraint? = nil
 
         var edgeSwipeGesture: UIScreenEdgePanGestureRecognizer
+
+        private var reloadNotificaitonCancellable: AnyCancellable! = nil
 
         init(rootPath: String, rootView: ModifiedContent<Content, NavigatorModifier>) {
             self.rootPath = rootPath
@@ -81,16 +92,35 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
             self.edgeSwipeGesture.edges = .left
 
             view.addGestureRecognizer(edgeSwipeGesture)
+
+            self.reloadNotificaitonCancellable = NotificationCenter.echeveria
+                .publisher(for: .RetapLauncher)
+                .filter { ($0.userInfo?["path"] as? String) == rootPath }
+                .sink { [weak self] _ in
+                    print("reload!!!", rootPath)
+                    self?.popToRoot()
+                }
         }
 
         required init?(coder: NSCoder) {
             fatalError()
         }
 
+        public override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            if let parent = parent {
+                view.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    view.topAnchor.constraint(equalTo: parent.view.topAnchor),
+                    view.bottomAnchor.constraint(equalTo: parent.view.bottomAnchor),
+                    view.leadingAnchor.constraint(equalTo: parent.view.leadingAnchor),
+                    view.trailingAnchor.constraint(equalTo: parent.view.trailingAnchor),
+                ])
+            }
+        }
+
         @objc func onEdgePan(_ sender: UIScreenEdgePanGestureRecognizer) {
             if stacks.count <= 1 { return }
-
-            print(sender.translation(in: view).x)
 
             switch sender.state {
             case .began:
@@ -154,11 +184,42 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
             }
         }
 
-        func roopback() {
-            print("roopback in stack")
+        func popToRoot() {
+            guard stacks.count > 1, let vc = stacks.first else { return }
+
+            addChild(vc)
+            view.insertSubview(vc.view, at: 0)
+
+            vc.view.translatesAutoresizingMaskIntoConstraints = false
+
+            let centerX = vc.view.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            NSLayoutConstraint.activate([
+                vc.view.topAnchor.constraint(equalTo: view.topAnchor),
+                vc.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                vc.view.widthAnchor.constraint(equalTo: view.widthAnchor),
+                centerX,
+            ])
+
+            centerX.constant = -view.frame.width / TRANSITION_WIDTH_DIVISOR
+            view.layoutIfNeeded()
+
+            currentCenterX?.constant = view.frame.width
+            centerX.constant = 0
+
+            UIView.animate(withDuration: 0.2, animations: {
+                self.view.layoutIfNeeded()
+            }, completion: { _ in
+                self.currentViewController?.removeFromParent()
+                self.currentViewController?.view.removeFromSuperview()
+                self.currentViewController = vc
+                self.currentCenterX = centerX
+                self.transitionViewController = nil
+                self.transitionCenterX = nil
+                self.stacks = [vc]
+            })
         }
 
-        func transition<Content>(with transition: RoutingTransition, view: Content) where Content : View {
+        func push<Content>(view: Content) where Content : View {
 
             if let oldViewController = currentViewController, let oldConstraint = currentCenterX {
 
@@ -217,14 +278,26 @@ public struct Stack<Content: View>: Route, RoutingElement {
         self.content = content
     }
 
-    let path: String
+    public let path: String
     let content: (RoutingTransition) -> Content
 
-    func apply(router: Router) {
+    public func apply(router: Router) {
         router.register(route: self)
     }
 
-    func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
+    public func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
         delegate.transition(with: transition, view: Stacker(rootPath: path, router: router) { content(transition) })
+    }
+}
+
+// MARK: - Extension
+
+extension Launcher {
+
+    public init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Stack<Content>) where RouteObject == Stack<Content> {
+        self.title = title
+        self.icon = .init(systemName: systemImage)
+        self.path = route().path
+        self.route = route()
     }
 }
