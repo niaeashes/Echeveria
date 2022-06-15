@@ -121,9 +121,9 @@ public struct RootView: UIViewControllerRepresentable {
             tryLayoutContent()
         }
 
-        func switchContent<Content>(viewController vc: UIHostingController<Content>, transition: RoutingTransition? = nil) where Content: View {
+        func switchContent(viewController vc: UIViewController, transition: RoutingTransition? = nil) {
 
-            logger.info("Switch Content: \(Content.self)")
+            logger.info("Switch Content: \(type(of: vc).self)")
 
             if let oldViewController = contentViewController, let oldConstant = contentCenterX {
 
