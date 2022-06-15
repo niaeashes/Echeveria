@@ -270,6 +270,13 @@ private struct StackModifier: ViewModifier {
     let controller: StackController
     let navigator: Navigator
 
+    @State var title: LocalizedStringKey? = nil
+
+    var titleView: some View {
+        (title.map { Text($0) } ?? Text(""))
+            .bold()
+    }
+
     func body(content: Content) -> some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
@@ -286,22 +293,39 @@ private struct StackModifier: ViewModifier {
                             .compositingGroup()
                             .onTapGesture { controller.pop() }
                     }
-                    Text("OK")
-                        .frame(height: 44)
-                        .frame(maxWidth: .infinity)
+
+                    Spacer()
+
                     Spacer()
                         .frame(width: 44)
                 }
+                .overlay(titleView)
                 .padding(.horizontal, 8)
                 .frame(height: 44)
                 .padding(.top, geometry.safeAreaInsets.top)
                 .background(Color(UIColor.systemBackground))
                 content
+                    .onPreferenceChange(StackTitleKey.self) { title = $0 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .modifier(NavigatorModifier(navigator: navigator))
             }
             .edgesIgnoringSafeArea(.top)
         }
+    }
+}
+
+private struct StackTitleKey: PreferenceKey {
+    static var defaultValue: LocalizedStringKey? = nil
+
+    static func reduce(value: inout LocalizedStringKey?, nextValue: () -> LocalizedStringKey?) {
+        value = nextValue()
+    }
+}
+
+extension View {
+
+    public func stack(title: LocalizedStringKey) -> some View {
+        preference(key: StackTitleKey.self, value: title)
     }
 }
 
@@ -312,12 +336,8 @@ struct StackModifier_Previews: PreviewProvider {
     }
 
     static var previews: some View {
-        Image(systemName: "chevron.backward")
-            .resizable()
-            .frame(width: 32, height: 32)
-            .padding(6)
-//        Text("Sample")
-//            .modifier(StackModifier(position: .stacked, navigator: MockNavigator()))
+        Text("Sample")
+            .modifier(StackModifier(controller: .init(isRoot: false, coordinator: .init(router: ConcreteRouter(source: RoutingCollection(elements: [])))), navigator: MockNavigator()))
     }
 }
 
@@ -357,8 +377,8 @@ extension StackViewController {
         UIView.animate(withDuration: TRANSITION_DURATION * 0.7, animations: {
             self.view.layoutIfNeeded()
         }, completion: { _ in
-            self.currentViewController?.removeFromParent()
             self.currentViewController?.view.removeFromSuperview()
+            self.currentViewController?.removeFromParent()
             self.currentViewController = self.transitionViewController
             self.currentCenterX = self.transitionCenterX
             self.completeTransition()
@@ -371,8 +391,8 @@ extension StackViewController {
         UIView.animate(withDuration: TRANSITION_DURATION * 0.7, animations: {
             self.view.layoutIfNeeded()
         }, completion: { _ in
-            self.transitionViewController?.removeFromParent()
             self.transitionViewController?.view.removeFromSuperview()
+            self.transitionViewController?.removeFromParent()
             self.transitionViewController = nil
             self.transitionCenterX = nil
         })
