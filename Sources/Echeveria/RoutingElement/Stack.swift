@@ -44,7 +44,12 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
 
         private var reloadNotificaitonCancellable: AnyCancellable! = nil
 
-        weak var viewController: StackViewController? = nil
+        weak var viewController: StackViewController? = nil {
+            didSet {
+                viewController?.edgeSwipeGesture
+                    .addTarget(self, action: #selector(self.onEdgePan(_:)))
+            }
+        }
 
         init(router: Router) {
             self.router = router
@@ -86,6 +91,33 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
             stacks = [stack]
             viewController?.pop(to: stack.viewController)
         }
+
+        @objc func onEdgePan(_ sender: UIScreenEdgePanGestureRecognizer) {
+
+            guard stacks.count > 1, let stacker = viewController else { return }
+
+            let prevStack = stacks[stacks.count - 2]
+
+            switch sender.state {
+            case .began:
+                stacker.beginPop(prevViewController: prevStack.viewController)
+                stacker.updatePopTransition(value: sender.translation(in: stacker.view).x / stacker.view.frame.width)
+            case .changed:
+                stacker.updatePopTransition(value: sender.translation(in: stacker.view).x / stacker.view.frame.width)
+            case .ended:
+                let velocity = sender.velocity(in: stacker.view)
+                let translation = sender.translation(in: stacker.view)
+                let result = (translation.x + velocity.x) / stacker.view.frame.width
+                if result < 0.5 {
+                    viewController?.cancelPop()
+                } else {
+                    _ = stacks.popLast()
+                    viewController?.completePop()
+                }
+            default:
+                break
+            }
+        }
     }
 
     struct StackState {
@@ -108,7 +140,6 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
             super.init(nibName: nil, bundle: nil)
             show(vc: UIHostingController(rootView: rootView))
 
-            self.edgeSwipeGesture.addTarget(self, action: #selector(self.onEdgePan(_:)))
             self.edgeSwipeGesture.edges = .left
 
             view.addGestureRecognizer(edgeSwipeGesture)
@@ -116,70 +147,6 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
 
         required init?(coder: NSCoder) {
             fatalError()
-        }
-
-        @objc func onEdgePan(_ sender: UIScreenEdgePanGestureRecognizer) {
-//            if stacks.count <= 1 { return }
-//
-//            switch sender.state {
-//            case .began:
-//                if let vc = getPrevViewController() {
-//                    addChild(vc)
-//                    view.insertSubview(vc.view, at: 0)
-//
-//                    vc.view.translatesAutoresizingMaskIntoConstraints = false
-//
-//                    let centerX = vc.view.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-//                    NSLayoutConstraint.activate([
-//                        vc.view.topAnchor.constraint(equalTo: view.topAnchor),
-//                        vc.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-//                        vc.view.widthAnchor.constraint(equalTo: view.widthAnchor),
-//                        centerX,
-//                    ])
-//
-//                    transitionViewController = vc
-//                    transitionCenterX = centerX
-//                }
-//                currentCenterX?.constant = sender.translation(in: view).x
-//                transitionCenterX?.constant = -(view.frame.width - sender.translation(in: view).x) / TRANSITION_WIDTH_DIVISOR
-//            case .changed:
-//                currentCenterX?.constant = sender.translation(in: view).x
-//                transitionCenterX?.constant = -(view.frame.width - sender.translation(in: view).x) / TRANSITION_WIDTH_DIVISOR
-//            case .ended:
-//                let velocity = sender.velocity(in: view)
-//                let translation = sender.translation(in: view)
-//
-//                let result = (translation.x + velocity.x) / view.frame.width
-//
-//                if result < 0.5 {
-//                    // cancel
-//                    currentCenterX?.constant = 0
-//                    UIView.animate(withDuration: 0.22, animations: {
-//                        self.view.layoutIfNeeded()
-//                    }, completion: { _ in
-//                        self.transitionViewController?.removeFromParent()
-//                        self.transitionViewController?.view.removeFromSuperview()
-//                        self.transitionViewController = nil
-//                        self.transitionCenterX = nil
-//                    })
-//                } else {
-//                    // complete
-//                    currentCenterX?.constant = view.frame.width
-//                    transitionCenterX?.constant = 0
-//                    UIView.animate(withDuration: 0.2, animations: {
-//                        self.view.layoutIfNeeded()
-//                    }, completion: { _ in
-//                        self.currentViewController?.removeFromParent()
-//                        self.currentViewController?.view.removeFromSuperview()
-//                        self.currentViewController = self.transitionViewController
-//                        self.currentCenterX = self.transitionCenterX
-//                        self.completeTransition()
-//                        _ = self.stacks.popLast()
-//                    })
-//                }
-//            default:
-//                currentCenterX?.constant = 0
-//            }
         }
 
         func push(viewController: UIViewController) {
@@ -261,6 +228,63 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
         }
     }
 }
+// MARK: - Interactive Pop View Controller
+
+extension Stacker.StackViewController {
+
+    func beginPop(prevViewController vc: UIViewController) {
+
+        addChild(vc)
+        view.insertSubview(vc.view, at: 0)
+
+        vc.view.translatesAutoresizingMaskIntoConstraints = false
+
+        let centerX = vc.view.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        NSLayoutConstraint.activate([
+            vc.view.topAnchor.constraint(equalTo: view.topAnchor),
+            vc.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            vc.view.widthAnchor.constraint(equalTo: view.widthAnchor),
+            centerX,
+        ])
+
+        transitionViewController = vc
+        transitionCenterX = centerX
+    }
+
+    /// @param value is from 0.0 to 1.0
+    func updatePopTransition(value: CGFloat) {
+
+        currentCenterX?.constant = view.frame.width * value
+        transitionCenterX?.constant = -view.frame.width * (1 - value) / TRANSITION_WIDTH_DIVISOR
+    }
+
+    func completePop() {
+        currentCenterX?.constant = view.frame.width
+        transitionCenterX?.constant = 0
+        UIView.animate(withDuration: 0.2, animations: {
+            self.view.layoutIfNeeded()
+        }, completion: { _ in
+            self.currentViewController?.removeFromParent()
+            self.currentViewController?.view.removeFromSuperview()
+            self.currentViewController = self.transitionViewController
+            self.currentCenterX = self.transitionCenterX
+            self.completeTransition()
+        })
+    }
+
+    func cancelPop() {
+        currentCenterX?.constant = 0
+        transitionCenterX?.constant = -view.frame.width / TRANSITION_WIDTH_DIVISOR
+        UIView.animate(withDuration: 0.22, animations: {
+            self.view.layoutIfNeeded()
+        }, completion: { _ in
+            self.transitionViewController?.removeFromParent()
+            self.transitionViewController?.view.removeFromSuperview()
+            self.transitionViewController = nil
+            self.transitionCenterX = nil
+        })
+    }
+}
 
 // MARK: - Stack route
 
@@ -280,7 +304,7 @@ public struct Stack<Content: View>: Route, RoutingElement {
 
     public func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
         let stacker = Stacker(rootPath: path, router: router, content: { content(transition) })
-            .ignoresSafeArea())
+            .ignoresSafeArea()
         delegate.transition(with: transition, view: stacker)
     }
 }
