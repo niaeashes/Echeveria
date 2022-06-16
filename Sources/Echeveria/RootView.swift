@@ -53,8 +53,6 @@ public struct RootView: UIViewControllerRepresentable {
 
         public func transition<Content>(with transition: RoutingTransition, view: Content) where Content: View {
 
-            defer { currentPath = transition.to }
-
             let viewController: UIHostingController<ModifiedContent<Content, NavigatorModifier>> = contentPool.restore(path: transition.to) {
                 .init(rootView: view.modifier(NavigatorModifier(navigator: self)))
             }
@@ -62,12 +60,12 @@ public struct RootView: UIViewControllerRepresentable {
             switch transition.type {
             case .prepare:
                 contentPool.store(path: transition.to, content: viewController)
-            case .slideToRight:
-                containerViewController.switchContent(viewController: viewController, transition: transition)
-            case .slideToLeft:
+            case .slideToRight, .slideToLeft:
+                currentPath = transition.to
                 containerViewController.switchContent(viewController: viewController, transition: transition)
             default:
                 if transition.from == "/" {
+                    currentPath = transition.to
                     containerViewController.switchContent(viewController: viewController)
                 } else {
                     containerViewController.openCover(viewController: viewController)
@@ -77,6 +75,10 @@ public struct RootView: UIViewControllerRepresentable {
 
         public func move(to path: String) {
             router.resolve(from: currentPath, to: path, delegate: self)
+        }
+
+        public func dismiss() {
+            containerViewController.closeCover()
         }
     }
 
@@ -189,6 +191,26 @@ public struct RootView: UIViewControllerRepresentable {
             })
         }
 
+        func closeCover() {
+            guard let vc = coverViewController else { return }
+
+            vc.view.translatesAutoresizingMaskIntoConstraints = false
+
+            if let animationConstraint = view.constraints.first(where: { $0.firstAttribute == .top && $0.secondAttribute == .top && $0.firstItem === vc.view }) {
+                UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseOut, animations: {
+                    animationConstraint.constant = self.view.frame.height
+                    self.view.layoutIfNeeded()
+                }, completion: { _ in
+                    vc.view.removeFromSuperview()
+                    vc.removeFromParent()
+                })
+            } else {
+                vc.view.removeFromSuperview()
+                vc.removeFromParent()
+                self.coverViewController = nil
+            }
+        }
+
         public override func viewWillLayoutSubviews() {
             super.viewWillLayoutSubviews()
             tabViewController.view.isHidden = !hasTabBar
@@ -297,13 +319,6 @@ public struct Launcher<RouteObject>: RoutingElement {
     let route: RouteObject
 
     public init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Page<Content>) where RouteObject == Page<Content> {
-        self.title = title
-        self.icon = .init(systemName: systemImage)
-        self.path = route().path
-        self.route = route()
-    }
-
-    init<Content: View>(title: LocalizedStringKey, systemImage: String, route: () -> Cover<Content>) where RouteObject == Cover<Content> {
         self.title = title
         self.icon = .init(systemName: systemImage)
         self.path = route().path

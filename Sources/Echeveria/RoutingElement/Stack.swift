@@ -18,6 +18,8 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
     let rootPath: String
     let content: () -> Content
 
+    @Environment(\.navigator) var baseNavigator
+
     init(rootPath: String, router: Router, @ViewBuilder content: @escaping () -> Content) {
         self.router = router
         self.rootPath = rootPath
@@ -29,6 +31,7 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+        context.coordinator.baseNavigator = baseNavigator
         context.coordinator.router = router
         context.coordinator.viewController = uiViewController
         context.coordinator.setupRoot(rootPath: rootPath, view: content())
@@ -39,13 +42,11 @@ struct Stacker<Content: View>: UIViewControllerRepresentable {
     }
 }
 
-class StackViewController: UIViewController {
+class StackViewController: UIViewController, TransitionOwner {
 
     weak var currentViewController: UIViewController? = nil
-    var currentCenterX: NSLayoutConstraint? = nil
 
-    weak var transitionViewController: UIViewController? = nil
-    var transitionCenterX: NSLayoutConstraint? = nil
+    var pushAndPop: StackTransition? = nil
 
     var edgeSwipeGesture: UIScreenEdgePanGestureRecognizer
 
@@ -64,90 +65,68 @@ class StackViewController: UIViewController {
 
     func push(viewController: UIViewController, animated: Bool = true) {
 
-        guard animated else {
-            return show(vc: viewController)
-        }
+        let source: TransitionActor = currentViewController.map { StackTransitionActor($0, role: .source) } ?? BlankTransitionActor()
 
-        let slideDistance = self.view.frame.width
+        let transition = StackTransition(
+            source: source,
+            distination: StackTransitionActor(viewController, role: .distination))
 
-        transitionViewController = currentViewController
-        transitionCenterX = currentCenterX
+        transition.begin(viewController: self)
 
-        show(vc: viewController)
-
-        currentCenterX?.constant = slideDistance
-        self.view.layoutIfNeeded()
-
-        currentCenterX?.constant = 0
-        transitionCenterX?.constant = -slideDistance / TRANSITION_WIDTH_DIVISOR
-
-        UIView.animate(withDuration: TRANSITION_DURATION, delay: 0, options: .curveEaseOut, animations: {
-            self.view.layoutIfNeeded()
-        }, completion: { _ in
-            self.transitionViewController?.view.removeFromSuperview()
-            self.transitionViewController?.removeFromParent()
-            self.completeTransition()
-        })
-    }
-
-    func pop(to viewController: UIViewController) {
-
-        let slideDistance = self.view.frame.width
-
-        transitionViewController = currentViewController
-        transitionCenterX = currentCenterX
-
-        show(vc: viewController, at: 0)
-
-        currentCenterX?.constant = -slideDistance / TRANSITION_WIDTH_DIVISOR
-        view.layoutIfNeeded()
-
-        currentCenterX?.constant = 0
-        transitionCenterX?.constant = slideDistance
-
-        UIView.animate(withDuration: TRANSITION_DURATION, delay: 0, options: .curveEaseOut, animations: {
-            self.view.layoutIfNeeded()
-        }, completion: { _ in
-            self.transitionViewController?.view.removeFromSuperview()
-            self.transitionViewController?.removeFromParent()
-            self.completeTransition()
-        })
-    }
-
-    private func show(vc: UIViewController, at index: Int? = nil) {
-
-        addChild(vc)
-
-        vc.view.translatesAutoresizingMaskIntoConstraints = false
-
-        if let index = index {
-            view.insertSubview(vc.view, at: index)
+        if animated {
+            transition.updateTransition(value: 0)
+            view.layoutIfNeeded()
+            UIView.animate(withDuration: TRANSITION_DURATION, delay: 0, options: .curveEaseOut, animations: {
+                transition.updateTransition(value: 1)
+                self.view.layoutIfNeeded()
+            }, completion: { _ in
+                transition.completePush()
+            })
         } else {
-            view.addSubview(vc.view)
+            transition.updateTransition(value: 1)
+            transition.completePush()
         }
-
-        currentViewController = vc
-
-        let centerX = vc.view.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        NSLayoutConstraint.activate([
-            vc.view.topAnchor.constraint(equalTo: view.topAnchor),
-            vc.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            vc.view.widthAnchor.constraint(equalTo: view.widthAnchor),
-            centerX,
-        ])
-        currentCenterX = centerX
     }
 
-    private func completeTransition() {
-        transitionViewController = nil
-        transitionCenterX = nil
+    func pop(to viewController: UIViewController, animated: Bool = true) {
+
+        let distination: TransitionActor = currentViewController.map { StackTransitionActor($0, role: .distination) } ?? BlankTransitionActor()
+
+        let transition = StackTransition(
+            source: StackTransitionActor(viewController, role: .source),
+            distination: distination)
+
+        transition.begin(viewController: self)
+
+        if animated {
+            transition.updateTransition(value: 1)
+            view.layoutIfNeeded()
+            UIView.animate(withDuration: TRANSITION_DURATION, delay: 0, options: .curveEaseOut, animations: {
+                transition.updateTransition(value: 0)
+                self.view.layoutIfNeeded()
+            }, completion: { _ in
+                transition.completePop()
+            })
+        } else {
+            transition.updateTransition(value: 0)
+            transition.completePop()
+        }
+    }
+
+    func transitionComplete(liveActor: TransitionActor, dropActor: TransitionActor) {
+        guard let liveViewController = (liveActor as? StackTransitionActor)?.viewController else { return assertionFailure() }
+        currentViewController = liveViewController
     }
 }
 
-class StackCoordinator: Navigator, RouterDelegate {
+// MARK: - Coordinator
+
+class StackCoordinator: RouterDelegate, Navigator, StackNavigator {
 
     var router: Router
     var stacks: Array<StackState> = []
+
+    weak var baseNavigator: Navigator? = nil
 
     struct StackState {
         let path: String
@@ -177,6 +156,10 @@ class StackCoordinator: Navigator, RouterDelegate {
         router.resolve(from: stacks.last?.path ?? "/", to: path, delegate: self)
     }
 
+    func dismiss() {
+        baseNavigator?.dismiss()
+    }
+
     func roopback() {
     }
 
@@ -184,7 +167,7 @@ class StackCoordinator: Navigator, RouterDelegate {
 
         guard stacks.count == 0 else { return }
 
-        let vc = UIHostingController(rootView: view.modifier(StackModifier(controller: .init(isRoot: true, coordinator: self), navigator: self)))
+        let vc = UIHostingController(rootView: view.modifier(StackModifier(navigator: self)))
         let nextStack = StackState(path: rootPath, viewController: vc)
         stacks.append(nextStack)
 
@@ -193,7 +176,12 @@ class StackCoordinator: Navigator, RouterDelegate {
 
     func transition<Content>(with transition: RoutingTransition, view: Content) where Content : View {
 
-        let vc = UIHostingController(rootView: view.modifier(StackModifier(controller: .init(isRoot: false, coordinator: self), navigator: self)))
+        if transition.type == .cover {
+            baseNavigator?.move(to: transition.to)
+            return
+        }
+
+        let vc = UIHostingController(rootView: view.modifier(StackModifier(navigator: self, backIcon: .init(systemName: "chevron.backward"))))
         let nextStack = StackState(path: transition.to, viewController: vc)
         stacks.append(nextStack)
 
@@ -205,7 +193,10 @@ class StackCoordinator: Navigator, RouterDelegate {
     }
 
     func pop() {
-        guard stacks.count > 1, let stacker = viewController else { return }
+        guard stacks.count > 1, let stacker = viewController else {
+            baseNavigator?.dismiss()
+            return
+        }
 
         let prevStack = stacks[stacks.count - 2]
         stacker.pop(to: prevStack.viewController)
@@ -226,20 +217,43 @@ class StackCoordinator: Navigator, RouterDelegate {
 
         switch sender.state {
         case .began:
-            stacker.beginPop(prevViewController: prevStack.viewController)
-            stacker.updatePopTransition(value: sender.translation(in: stacker.view).x / stacker.view.frame.width)
+
+            guard let viewController = viewController, let currentViewController = viewController.currentViewController else { return assertionFailure() }
+
+            let transition = StackTransition(
+                source: StackTransitionActor(prevStack.viewController, role: .source),
+                distination: StackTransitionActor(currentViewController, role: .distination))
+            transition.owner = viewController
+            transition.begin(viewController: viewController)
+            transition.updateTransition(value: 1 - sender.translation(in: stacker.view).x / stacker.view.frame.width)
+
+            viewController.pushAndPop = transition
+
         case .changed:
-            stacker.updatePopTransition(value: sender.translation(in: stacker.view).x / stacker.view.frame.width)
+
+            guard let transition = viewController?.pushAndPop else { return }
+            transition.updateTransition(value: 1 - sender.translation(in: stacker.view).x / stacker.view.frame.width)
+
         case .ended:
+
+            guard let transition = viewController?.pushAndPop else { return }
             let velocity = sender.velocity(in: stacker.view)
             let translation = sender.translation(in: stacker.view)
             let result = (translation.x + velocity.x) / stacker.view.frame.width
             if result < 0.5 {
-                viewController?.cancelPop()
+                transition.cancelPop()
             } else {
                 _ = stacks.popLast()
-                viewController?.completePop()
+                transition.completePop()
             }
+            viewController?.pushAndPop = nil
+
+        case .cancelled:
+
+            guard let transition = viewController?.pushAndPop else { return }
+            transition.cancelPop()
+            viewController?.pushAndPop = nil
+
         default:
             break
         }
@@ -248,28 +262,18 @@ class StackCoordinator: Navigator, RouterDelegate {
 
 // MARK: - Stacked content basic look & feel
 
-private class StackController {
+private protocol StackNavigator {
 
-    let isRoot: Bool
-    weak var coordinator: StackCoordinator?
-
-    init(isRoot: Bool, coordinator: StackCoordinator) {
-        self.isRoot = isRoot
-        self.coordinator = coordinator
-    }
-
-    func pop() {
-        coordinator?.pop()
-    }
+    func pop()
 }
 
 private let CONTROL_ICON_SIZE: CGFloat = 16
 
 private struct StackModifier: ViewModifier {
 
-    let controller: StackController
-    let navigator: Navigator
+    let navigator: Navigator & StackNavigator
 
+    @State var backIcon: Image? = nil
     @State var title: LocalizedStringKey? = nil
 
     var titleView: some View {
@@ -281,17 +285,18 @@ private struct StackModifier: ViewModifier {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 HStack(alignment: .center) {
-                    if controller.isRoot {
+                    if let backIcon = backIcon {
+                        Button(action: { navigator.pop() }) {
+                            backIcon
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: CONTROL_ICON_SIZE, height: CONTROL_ICON_SIZE)
+                                .padding((44 - CONTROL_ICON_SIZE) / 2)
+                                .compositingGroup()
+                        }
+                    } else {
                         Spacer()
                             .frame(width: 44)
-                    } else {
-                        Image(systemName: "chevron.backward")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: CONTROL_ICON_SIZE, height: CONTROL_ICON_SIZE)
-                            .padding((44 - CONTROL_ICON_SIZE) / 2)
-                            .compositingGroup()
-                            .onTapGesture { controller.pop() }
                     }
 
                     Spacer()
@@ -299,13 +304,14 @@ private struct StackModifier: ViewModifier {
                     Spacer()
                         .frame(width: 44)
                 }
-                .overlay(titleView)
+                .overlay(titleView.lineLimit(1).padding(.horizontal, 44))
                 .padding(.horizontal, 8)
                 .frame(height: 44)
                 .padding(.top, geometry.safeAreaInsets.top)
-                .background(Color(UIColor.systemBackground))
+                .background(Color(UIColor.systemBackground).opacity(0.5))
                 content
                     .onPreferenceChange(StackTitleKey.self) { title = $0 }
+                    .onPreferenceChange(StackBackIconKey.self) { backIcon = $0 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .modifier(NavigatorModifier(navigator: navigator))
             }
@@ -322,80 +328,41 @@ private struct StackTitleKey: PreferenceKey {
     }
 }
 
+private struct StackBackIconKey: PreferenceKey {
+    static var defaultValue: Image? = nil
+
+    static func reduce(value: inout Image?, nextValue: () -> Image?) {
+        value = nextValue()
+    }
+}
+
 extension View {
 
     public func stack(title: LocalizedStringKey) -> some View {
         preference(key: StackTitleKey.self, value: title)
     }
+
+    public func stack(backIcon: Image) -> some View {
+        preference(key: StackBackIconKey.self, value: backIcon)
+    }
+
+    public func stack(title: LocalizedStringKey, backIcon: Image) -> some View {
+        preference(key: StackTitleKey.self, value: title)
+            .preference(key: StackBackIconKey.self, value: backIcon)
+    }
 }
 
 struct StackModifier_Previews: PreviewProvider {
 
-    class MockNavigator: Navigator {
+    class MockNavigator: Navigator, StackNavigator {
         func move(to: String) {}
+        func dismiss() {}
+        func pop() {}
     }
 
     static var previews: some View {
         Text("Sample")
-            .modifier(StackModifier(controller: .init(isRoot: false, coordinator: .init(router: ConcreteRouter(source: RoutingCollection(elements: [])))), navigator: MockNavigator()))
-    }
-}
-
-// MARK: - Interactive Pop View Controller
-
-extension StackViewController {
-
-    func beginPop(prevViewController vc: UIViewController) {
-
-        addChild(vc)
-        view.insertSubview(vc.view, at: 0)
-
-        vc.view.translatesAutoresizingMaskIntoConstraints = false
-
-        let centerX = vc.view.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        NSLayoutConstraint.activate([
-            vc.view.topAnchor.constraint(equalTo: view.topAnchor),
-            vc.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            vc.view.widthAnchor.constraint(equalTo: view.widthAnchor),
-            centerX,
-        ])
-
-        transitionViewController = vc
-        transitionCenterX = centerX
-    }
-
-    /// @param value is from 0.0 to 1.0
-    func updatePopTransition(value: CGFloat) {
-
-        currentCenterX?.constant = view.frame.width * value
-        transitionCenterX?.constant = -view.frame.width * (1 - value) / TRANSITION_WIDTH_DIVISOR
-    }
-
-    func completePop() {
-        currentCenterX?.constant = view.frame.width
-        transitionCenterX?.constant = 0
-        UIView.animate(withDuration: TRANSITION_DURATION * 0.7, animations: {
-            self.view.layoutIfNeeded()
-        }, completion: { _ in
-            self.currentViewController?.view.removeFromSuperview()
-            self.currentViewController?.removeFromParent()
-            self.currentViewController = self.transitionViewController
-            self.currentCenterX = self.transitionCenterX
-            self.completeTransition()
-        })
-    }
-
-    func cancelPop() {
-        currentCenterX?.constant = 0
-        transitionCenterX?.constant = -view.frame.width / TRANSITION_WIDTH_DIVISOR
-        UIView.animate(withDuration: TRANSITION_DURATION * 0.7, animations: {
-            self.view.layoutIfNeeded()
-        }, completion: { _ in
-            self.transitionViewController?.view.removeFromSuperview()
-            self.transitionViewController?.removeFromParent()
-            self.transitionViewController = nil
-            self.transitionCenterX = nil
-        })
+            .modifier(StackModifier(navigator: MockNavigator()))
     }
 }
 

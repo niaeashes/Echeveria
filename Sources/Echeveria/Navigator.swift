@@ -9,8 +9,9 @@ import Combine
 // MARK: - Navigator Protocol
 
 // TODO: Rename
-public protocol Navigator {
+public protocol Navigator: AnyObject {
     func move(to: String)
+    func dismiss()
 }
 
 public extension Navigator {

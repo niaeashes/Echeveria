@@ -219,25 +219,6 @@ public struct Page<Content: View>: Route, RoutingElement {
     }
 }
 
-struct Cover<Content: View>: Route, RoutingElement {
-
-    init(path: String, @ViewBuilder content: @escaping (RoutingTransition) -> Content) {
-        self.path = path
-        self.content = content
-    }
-
-    var path: String
-    let content: (RoutingTransition) -> Content
-
-    func apply(router: Router) {
-        router.register(route: self)
-    }
-
-    func resolve(router: Router, transition: RoutingTransition, delegate: RouterDelegate) {
-        delegate.transition(with: transition.convert(type: .cover), view: content(transition))
-    }
-}
-
 struct Namespace: RoutingElement {
 
     let path: String
