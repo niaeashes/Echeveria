@@ -4,7 +4,7 @@
 
 import Foundation
 
-class RoutingManager {
+class RoutingManager: ObservableObject {
 
     private var nodes: Dictionary<String, Node> = [
         "/": Root(path: "/"),

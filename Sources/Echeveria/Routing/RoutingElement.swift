@@ -18,18 +18,20 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
     let scene: (RoutingInfo) throws -> Scene
 
     public init(_ path: String, view: @escaping () -> Scene) {
-        self.path = path
-        self.scene = { _ in view() }
+        self.init(path) { _ in view() }
     }
 
-    public init(_ path: String, view: @escaping (RoutingInfo) -> Scene) {
+    public init(_ path: String, view: @escaping (RoutingInfo) throws -> Scene) {
+        var path = path
+        if path[path.startIndex] != "/" {
+            path = "/\(path)"
+        }
         self.path = path
         self.scene = view
     }
 
     public init<P>(_ path: String, parseBy parameterParser: P, view: @escaping (P.Param) -> Scene) where P: RoutingParamParser {
-        self.path = path
-        self.scene = {
+        self.init(path) {
             let params = try parameterParser.parse(info: $0)
             return view(params)
         }
@@ -51,21 +53,21 @@ struct LeafRoute<Element: RoutingElement>: RoutingElement, RoutingRegistry {
     }
 }
 
-extension RoutingElement {
+extension Route {
 
     public func leaf(text: LocalizedStringKey, icon: String, placement: Leaf.Placement? = nil, bundle: Bundle? = nil) -> some RoutingElement {
-        LeafRoute(element: self, leaf: .init(text: .init(text, bundle: bundle), icon: .init(icon, bundle: bundle), placement: placement))
+        LeafRoute(element: self, leaf: .init(path: path, text: .init(text, bundle: bundle), icon: .init(icon, bundle: bundle), placement: placement))
     }
 
     public func leaf(text: String, icon: String, placement: Leaf.Placement? = nil, bundle: Bundle? = nil) -> some RoutingElement {
-        LeafRoute(element: self, leaf: .init(text: .init(text), icon: .init(icon, bundle: bundle), placement: placement))
+        LeafRoute(element: self, leaf: .init(path: path, text: .init(text), icon: .init(icon, bundle: bundle), placement: placement))
     }
 
     public func leaf(text: LocalizedStringKey, systemImage: String, placement: Leaf.Placement? = nil, bundle: Bundle? = nil) -> some RoutingElement {
-        LeafRoute(element: self, leaf: .init(text: .init(text, bundle: bundle), icon: .init(systemName: systemImage), placement: placement))
+        LeafRoute(element: self, leaf: .init(path: path, text: .init(text, bundle: bundle), icon: .init(systemName: systemImage), placement: placement))
     }
 
     public func leaf(text: String, systemImage: String, placement: Leaf.Placement? = nil) -> some RoutingElement {
-        LeafRoute(element: self, leaf: .init(text: .init(text), icon: .init(systemName: systemImage), placement: placement))
+        LeafRoute(element: self, leaf: .init(path: path, text: .init(text), icon: .init(systemName: systemImage), placement: placement))
     }
 }

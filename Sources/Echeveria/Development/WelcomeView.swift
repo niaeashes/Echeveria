@@ -28,7 +28,7 @@ struct WelcomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: spacing) {
-                Image(systemName: "leaf")
+                Image(systemName: "leaf.circle")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .foregroundColor(.green)

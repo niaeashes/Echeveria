@@ -15,9 +15,9 @@ struct Echeveria_iOS_ExampleApp: App {
             Soil {
                 // Route("/") { Text("Soil") }
                 Route("/todos") { _ in TodoListView() }
-                    .leaf(text: "Todos", systemImage: "circle", placement: .launcher)
+                    .leaf(text: "Todos", systemImage: "list.triangle", placement: .launcher)
                 Route("setting") { _ in SettingView() }
-                    .leaf(text: "Setting", systemImage: "circle", placement: .launcher)
+                    .leaf(text: "Setting", systemImage: "gear", placement: .launcher)
 
                 Route("/todos/:id", parseBy: TodoParameterResolver()) { TodoView(id: $0.id) }
             }

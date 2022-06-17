@@ -6,7 +6,12 @@ import SwiftUI
 
 public struct Router {
     let leaves: Array<Leaf>
-    let routes: Dictionary<RoutingPath, RoutingResolver>
+    private let routes: Dictionary<RoutingPath, RoutingResolver>
+
+    fileprivate init(leaves: Array<Leaf>, routes: Dictionary<RoutingPath, RoutingResolver>) {
+        self.leaves = leaves
+        self.routes = routes
+    }
 
     func resolve(path: String, delegate: RouterDelegate) {
         for routingPath in routes.keys {
@@ -23,6 +28,7 @@ protocol RouterDelegate {
 }
 
 public struct Leaf {
+    public let path: String
     public let text: Text
     public let icon: Image
     public let placement: Placement?
@@ -34,7 +40,7 @@ public struct Leaf {
 
 // MARK: - Router Builder
 
-struct RoutingResolver {
+private struct RoutingResolver {
     let resolver: (RoutingInfo, RouterDelegate) -> Void
 }
 
@@ -55,10 +61,6 @@ public class RouterBuilder {
     }
 
     func add<V>(path: String, content: @escaping (RoutingInfo) throws -> V) where V: View {
-        var path = path
-        if path[path.startIndex] != "/" {
-            path = "/\(path)"
-        }
         routes[.init(path)] = .init() { info, delegate in
             do {
                 delegate.present(transition: nil, content: try content(info))
