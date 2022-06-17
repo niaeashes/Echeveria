@@ -3,22 +3,26 @@
 //
 
 import SwiftUI
+import Combine
 
 public struct Soil: View {
 
     let router: Router
-    let manager = RoutingManager()
+    let manager: RoutingManager
+    let navigator = PassthroughNavigator()
     @StateObject var viewModel = ViewModel()
 
     public init(@RouterBuilder router: () -> Router) {
         self.router = router()
+        self.manager = .init(with: self.router)
     }
 
     public var body: some View {
         ZStack {
-            Representable(router: router, manager: manager)
+            Representable(router: router, manager: manager, navigator: navigator)
             Overlay(router.leaves)
         }
+        .environment(\.navigator, navigator)
         #if DEBUG
         .environmentObject(manager)
         #endif
@@ -27,44 +31,52 @@ public struct Soil: View {
     struct Representable: UIViewControllerRepresentable {
 
         let router: Router
-        let manager: RoutingManager
+        @ObservedObject var manager: RoutingManager
+        let navigator: PassthroughNavigator
+
+        init(router: Router, manager: RoutingManager, navigator: PassthroughNavigator) {
+            self.router = router
+            self.manager = manager
+            self.navigator = navigator
+        }
 
         public func makeUIViewController(context: Context) -> SoilViewController {
-            .init()
+            let vc = SoilViewController()
+            context.coordinator.viewController = vc
+            navigator.rootNavigator = context.coordinator
+            router.resolve(path: manager.current, delegate: context.coordinator)
+            return vc
         }
 
         public func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
-            context.coordinator.viewController = uiViewController
+            router.resolve(path: manager.current, delegate: context.coordinator)
         }
 
         public func makeCoordinator() -> Coordinator {
-            .init(router: router, manager: manager)
+            .init(manager: manager)
         }
     }
 
-    public class Coordinator: RouterDelegate {
+    public class Coordinator: RouterDelegate, Navigator {
 
-        let router: Router
         let manager: RoutingManager
 
-        weak var viewController: SoilViewController? = nil {
-            didSet { prepare() }
-        }
+        weak var viewController: SoilViewController? = nil
 
-        init(router: Router, manager: RoutingManager) {
-            self.router = router
+        init(manager: RoutingManager) {
             self.manager = manager
         }
 
-        func prepare() {
-            router.leaves.forEach {
-                manager.registerRoot(path: $0.path)
-            }
-            router.resolve(path: manager.current, delegate: self)
+        func present<V>(transition: SceneTransition?, content: V) where V : View {
+            viewController?.currentContentViewController = UIHostingController(rootView: content)
         }
 
-        func present<V>(transition: ScreenTransition?, content: V) where V : View {
-            viewController?.currentContentViewController = UIHostingController(rootView: content)
+        public func present(path: String) {
+            manager.push(path: path)
+        }
+
+        public func present<T>(path: String, with transition: T.Type) where T : SceneTransition {
+            manager.push(path: path)
         }
     }
 

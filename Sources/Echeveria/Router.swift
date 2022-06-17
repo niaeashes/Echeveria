@@ -21,10 +21,8 @@ public struct Router {
     }
 }
 
-protocol ScreenTransition {}
-
 protocol RouterDelegate {
-    func present<V>(transition: ScreenTransition?, content: V) where V: View
+    func present<V>(transition: SceneTransition?, content: V) where V: View
 }
 
 public struct Leaf {

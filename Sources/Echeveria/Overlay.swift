@@ -7,6 +7,7 @@ import SwiftUI
 struct Overlay: View {
 
     let launchers: Array<Leaf>
+    @Environment(\.navigator) var navigator
     @State var selectedLauncherIndex = 0
 
     init(_ leaves: Array<Leaf>) {
@@ -41,7 +42,10 @@ struct Overlay: View {
                         .drawingGroup()
                         .contentShape(Rectangle())
                         .opacity(selectedLauncherIndex == i ? 1 : 0.25)
-                        .onTapGesture { withAnimation(.default.speed(5)) { selectedLauncherIndex = i } }
+                        .onTapGesture {
+                            navigator.present(path: launcher.path)
+                            withAnimation(.default.speed(5)) { selectedLauncherIndex = i }
+                        }
                     }
                 }
                 .background(Color(UIColor.systemBackground).edgesIgnoringSafeArea(.bottom))

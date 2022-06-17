@@ -2,7 +2,7 @@
 //  RoutingManager.swift
 //
 
-import Foundation
+import Combine
 
 class RoutingManager: ObservableObject {
 
@@ -10,17 +10,32 @@ class RoutingManager: ObservableObject {
         "/": Root(path: "/"),
     ]
     private var activeNodeRoot: String = "/"
+    private var firstLauncherPath: String? = nil
+
+    init() {}
+
+    init(with router: Router) {
+        router.leaves.forEach {
+            registerRoot(path: $0.path)
+            if $0.placement == .launcher, firstLauncherPath == nil {
+                firstLauncherPath = $0.path
+                push(path: $0.path)
+            }
+        }
+    }
 
     func push(path: String) {
 
         if nodes.keys.contains(path) {
             if activeNodeRoot != path {
+                objectWillChange.send()
                 activeNodeRoot = path
             }
             return
         }
 
         guard let node = nodes[activeNodeRoot] else { return assertionFailure() }
+        objectWillChange.send()
         nodes[activeNodeRoot] = Stalk(root: node, path: path)
     }
 
