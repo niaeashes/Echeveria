@@ -17,6 +17,11 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
     let path: String
     let scene: (RoutingInfo) throws -> Scene
 
+    public init(_ path: String, view: @escaping () -> Scene) {
+        self.path = path
+        self.scene = { _ in view() }
+    }
+
     public init(_ path: String, view: @escaping (RoutingInfo) -> Scene) {
         self.path = path
         self.scene = view

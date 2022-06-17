@@ -19,7 +19,7 @@ public struct Router {
 protocol ScreenTransition {}
 
 protocol RouterDelegate {
-    func refresh<V>(transition: ScreenTransition?, content: V) where V: View
+    func present<V>(transition: ScreenTransition?, content: V) where V: View
 }
 
 public struct Leaf {
@@ -41,7 +41,12 @@ struct RoutingResolver {
 @resultBuilder
 public class RouterBuilder {
 
-    private init() {}
+    private init() {
+        routes[.init("/")] = .init { info, delegate in
+            delegate.present(transition: nil, content: WelcomeView())
+        }
+    }
+
     private var leaves: Array<Leaf> = []
     private var routes: Dictionary<RoutingPath, RoutingResolver> = [:]
 
@@ -50,9 +55,13 @@ public class RouterBuilder {
     }
 
     func add<V>(path: String, content: @escaping (RoutingInfo) throws -> V) where V: View {
+        var path = path
+        if path[path.startIndex] != "/" {
+            path = "/\(path)"
+        }
         routes[.init(path)] = .init() { info, delegate in
             do {
-                delegate.refresh(transition: nil, content: try content(info))
+                delegate.present(transition: nil, content: try content(info))
             } catch {
                 // TODO: Handle Error
             }

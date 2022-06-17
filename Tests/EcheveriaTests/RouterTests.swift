@@ -18,7 +18,7 @@ class RouterTests: XCTestCase {
     struct Tester<Expected: View & Equatable>: RouterDelegate {
         let expect: XCTestExpectation
         let expectedView: Expected
-        func refresh<V>(transition: ScreenTransition?, content: V) where V : View {
+        func present<V>(transition: ScreenTransition?, content: V) where V : View {
             if let test = content as? Expected {
                 XCTAssertEqual(test, expectedView)
             } else {

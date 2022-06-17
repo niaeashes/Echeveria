@@ -13,6 +13,7 @@ struct Echeveria_iOS_ExampleApp: App {
     var body: some Scene {
         WindowGroup {
             Soil {
+                // Route("/") { Text("Soil") }
                 Route("/todos") { _ in TodoListView() }
                     .leaf(text: "Todos", systemImage: "circle", placement: .launcher)
                 Route("setting") { _ in SettingView() }
