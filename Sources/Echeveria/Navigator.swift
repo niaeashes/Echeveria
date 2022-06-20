@@ -6,18 +6,18 @@ import Foundation
 import SwiftUI
 
 public protocol Navigator {
-    func present(path: String)
-    func present<T>(path: String, with transition: T.Type) where T: SceneTransition
+    func move(to path: String)
+    func move(to path: String, with transition: SceneTransition)
 }
 
 private struct BlankNavigator: Navigator {
 
-    func present(path: String) {
+    func move(to path: String) {
         assertionFailure("Uncaught path request: \(path)")
     }
 
-    func present<T>(path: String, with transition: T.Type) where T : SceneTransition {
-        assertionFailure("Uncaught path request: \(path), with transition: \(T.self)")
+    func move(to path: String, with transition: SceneTransition) {
+        assertionFailure("Uncaught path request: \(path), with transition: \(transition)")
     }
 }
 
@@ -25,14 +25,14 @@ class PassthroughNavigator: Navigator {
 
     var rootNavigator: Navigator? = nil
 
-    func present(path: String) {
+    func move(to path: String) {
         guard let navigator = rootNavigator else { return assertionFailure() }
-        navigator.present(path: path)
+        navigator.move(to: path)
     }
 
-    func present<T>(path: String, with transition: T.Type) where T : SceneTransition {
+    func move(to path: String, with transition: SceneTransition) {
         guard let navigator = rootNavigator else { return assertionFailure() }
-        navigator.present(path: path, with: T.self)
+        navigator.move(to: path, with: transition)
     }
 }
 

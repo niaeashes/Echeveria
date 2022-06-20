@@ -20,6 +20,7 @@ struct Echeveria_iOS_ExampleApp: App {
                     .leaf(text: "Setting", systemImage: "gear", placement: .launcher)
 
                 Route("/todos/:id", parseBy: TodoParameterResolver()) { TodoView(id: $0.id) }
+                Route("/help", transition: CoverTransition()) { _ in HelpView() }
             }
         }
     }

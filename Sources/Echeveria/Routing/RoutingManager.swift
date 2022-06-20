@@ -3,6 +3,12 @@
 //
 
 import Combine
+import SwiftUI
+
+struct RoutingTransition {
+    let path: String
+    let transition: SceneTransition?
+}
 
 class RoutingManager: ObservableObject {
 
@@ -11,6 +17,11 @@ class RoutingManager: ObservableObject {
     ]
     private var activeNodeRoot: String = "/"
     private var firstLauncherPath: String? = nil
+
+    private let transitionSubject: PassthroughSubject<RoutingTransition, Never> = .init()
+    var transition: AnyPublisher<RoutingTransition, Never> {
+        transitionSubject.eraseToAnyPublisher()
+    }
 
     init() {}
 
@@ -24,12 +35,13 @@ class RoutingManager: ObservableObject {
         }
     }
 
-    func push(path: String) {
+    func push(path: String, transition: SceneTransition? = nil) {
 
         if nodes.keys.contains(path) {
             if activeNodeRoot != path {
                 objectWillChange.send()
                 activeNodeRoot = path
+                transitionSubject.send(.init(path: current, transition: transition))
             }
             return
         }
@@ -37,6 +49,7 @@ class RoutingManager: ObservableObject {
         guard let node = nodes[activeNodeRoot] else { return assertionFailure() }
         objectWillChange.send()
         nodes[activeNodeRoot] = Stalk(root: node, path: path)
+        transitionSubject.send(.init(path: current, transition: transition))
     }
 
     @discardableResult

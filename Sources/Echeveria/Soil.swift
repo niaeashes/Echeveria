@@ -7,81 +7,119 @@ import Combine
 
 public struct Soil: View {
 
-    let router: Router
-    let manager: RoutingManager
-    let navigator = PassthroughNavigator()
-    @StateObject var viewModel = ViewModel()
+    @StateObject var viewModel: ViewModel
 
-    public init(@RouterBuilder router: () -> Router) {
-        self.router = router()
-        self.manager = .init(with: self.router)
+    public init(@RouterBuilder router: @escaping () -> Router) {
+        self._viewModel = StateObject(wrappedValue: .init(router: router()))
     }
 
     public var body: some View {
         ZStack {
-            Representable(router: router, manager: manager, navigator: navigator)
-            Overlay(router.leaves)
+            Representable(viewModel: viewModel)
+            Overlay(viewModel.router.leaves, isShowLauncher: viewModel.isShowLauncher)
         }
-        .environment(\.navigator, navigator)
+        .environment(\.navigator, viewModel)
+        .environment(\.sceneOwner, viewModel)
         #if DEBUG
-        .environmentObject(manager)
+        .environmentObject(viewModel.manager)
         #endif
     }
 
     struct Representable: UIViewControllerRepresentable {
 
-        let router: Router
-        @ObservedObject var manager: RoutingManager
-        let navigator: PassthroughNavigator
+        typealias Coordinator = ViewModel
 
-        init(router: Router, manager: RoutingManager, navigator: PassthroughNavigator) {
-            self.router = router
-            self.manager = manager
-            self.navigator = navigator
+        @ObservedObject var viewModel: ViewModel
+
+        init(viewModel: ViewModel) {
+            self.viewModel = viewModel
         }
 
         public func makeUIViewController(context: Context) -> SoilViewController {
             let vc = SoilViewController()
             context.coordinator.viewController = vc
-            navigator.rootNavigator = context.coordinator
-            router.resolve(path: manager.current, delegate: context.coordinator)
             return vc
         }
 
         public func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
-            router.resolve(path: manager.current, delegate: context.coordinator)
+            /* Nothing to do */
         }
 
         public func makeCoordinator() -> Coordinator {
-            .init(manager: manager)
+            viewModel
         }
     }
 
-    public class Coordinator: RouterDelegate, Navigator {
+    public class ViewModel: ObservableObject, RouterDelegate, Navigator, SceneOwner {
 
+        let router: Router
         let manager: RoutingManager
+        var cancellables: Array<AnyCancellable> = []
 
-        weak var viewController: SoilViewController? = nil
+        init(router: Router) {
+            self.router = router
+            self.manager = .init(with: self.router)
 
-        init(manager: RoutingManager) {
-            self.manager = manager
+            manager
+                .transition
+                .sink { [weak self] transition in self?.queueTransition(transition) }
+                .store(in: &cancellables)
+        }
+
+        @Published var safeAreaInsets: UIEdgeInsets = .zero
+        @Published var isShowLauncher = true
+
+        weak var viewController: SoilViewController? = nil {
+            didSet {
+                router.resolve(path: manager.current, delegate: self)
+            }
+        }
+
+        public var currentViewController: UIViewController? {
+            viewController?.currentContentViewController
+        }
+
+        public func showLauncher() {
+            withAnimation { isShowLauncher = true }
+        }
+
+        public func hideLauncher() {
+            withAnimation { isShowLauncher = false }
+        }
+
+        public func transitionCancel() {
+        }
+
+        public func transitionFinish(context: SceneTransitionContext) {
+            self.viewController?.currentContentViewController = context.distination
+        }
+
+        private func queueTransition(_ transition: RoutingTransition) {
+            DispatchQueue.main.async {
+                self.router.resolve(transition: transition, delegate: self)
+            }
         }
 
         func present<V>(transition: SceneTransition?, content: V) where V : View {
-            viewController?.currentContentViewController = UIHostingController(rootView: content)
+
+            guard let viewController = viewController else { return assertionFailure() }
+
+            let vc = UIHostingController(rootView: content)
+
+            if let transition = transition {
+                viewController.transition(transition, owner: self, viewController: vc)
+            } else {
+                viewController.currentContentViewController = vc
+            }
         }
 
-        public func present(path: String) {
+        public func move(to path: String) {
             manager.push(path: path)
         }
 
-        public func present<T>(path: String, with transition: T.Type) where T : SceneTransition {
+        public func move(to path: String, with transition: SceneTransition) {
             manager.push(path: path)
         }
-    }
-
-    class ViewModel: ObservableObject {
-        @Published var safeAreaInsets: UIEdgeInsets = .zero
     }
 }
 
@@ -114,6 +152,16 @@ public class SoilViewController: UIViewController {
             ])
         }
         tryLayoutContent()
+    }
+
+    func transition(_ transition: SceneTransition, owner: SceneOwner, viewController: UIViewController) {
+        guard let source = currentContentViewController else {
+            currentContentViewController = viewController
+            return
+        }
+        let context = SceneTransitionContext(owner: owner, container: self, source: source, distination: viewController)
+        transition.prepare(context: context)
+        transition.finish(context: context)
     }
 
     private func tryLayoutContent() {

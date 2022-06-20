@@ -9,8 +9,23 @@ import SwiftUI
 import Echeveria
 
 struct TodoListView: View {
+
+    @Environment(\.navigator) var navigator
+    @Environment(\.sceneOwner) var sceneOwner
+
     var body: some View {
-        Text("Todo List")
+        VStack {
+            Text("Todo List")
+            Button(action: { sceneOwner.hideLauncher() }) {
+                Text("Hide Launcher")
+            }
+            Button(action: { sceneOwner.showLauncher() }) {
+                Text("Show Launcher")
+            }
+            Button(action: { navigator.move(to: "/help") }) {
+                Text("Open Help")
+            }
+        }
     }
 }
 
@@ -40,5 +55,11 @@ struct SettingView: View {
 
     var body: some View {
         Text("Setting")
+    }
+}
+
+struct HelpView: View {
+    var body: some View {
+        Text("Help")
     }
 }

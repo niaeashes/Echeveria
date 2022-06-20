@@ -15,9 +15,15 @@ class RouterTests: XCTestCase {
         }
     }
 
-    struct Tester<Expected: View & Equatable>: RouterDelegate {
+    class Tester<Expected: View & Equatable>: RouterDelegate {
         let expect: XCTestExpectation
         let expectedView: Expected
+
+        init(expect: XCTestExpectation, expectedView: Expected) {
+            self.expect = expect
+            self.expectedView = expectedView
+        }
+
         func present<V>(transition: SceneTransition?, content: V) where V : View {
             if let test = content as? Expected {
                 XCTAssertEqual(test, expectedView)

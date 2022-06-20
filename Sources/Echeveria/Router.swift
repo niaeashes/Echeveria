@@ -19,9 +19,38 @@ public struct Router {
             route.resolver(info, delegate)
         }
     }
+
+    func resolve(transition routing: RoutingTransition, delegate: RouterDelegate) {
+        guard let transition = routing.transition else {
+            return resolve(path: routing.path, delegate: delegate)
+        }
+        for routingPath in routes.keys {
+            guard let info = routingPath.test(path: routing.path), let route = routes[routingPath] else { continue }
+            route.resolver(info, TransitionModifier(next: delegate, transition: transition))
+        }
+    }
+
+    class TransitionModifier: RouterDelegate {
+
+        let next: RouterDelegate
+        let transition: SceneTransition
+
+        init(next: RouterDelegate, transition: SceneTransition) {
+            self.next = next
+            self.transition = transition
+        }
+
+        func present<V>(transition: SceneTransition?, content: V) where V : View {
+            next.present(transition: transition ?? self.transition, content: content)
+        }
+    }
 }
 
-protocol RouterDelegate {
+private struct RoutingResolver {
+    let resolver: (RoutingInfo, RouterDelegate) -> Void
+}
+
+protocol RouterDelegate: AnyObject {
     func present<V>(transition: SceneTransition?, content: V) where V: View
 }
 
@@ -37,10 +66,6 @@ public struct Leaf {
 }
 
 // MARK: - Router Builder
-
-private struct RoutingResolver {
-    let resolver: (RoutingInfo, RouterDelegate) -> Void
-}
 
 @resultBuilder
 public class RouterBuilder {
@@ -58,10 +83,10 @@ public class RouterBuilder {
         leaves.append(leaf)
     }
 
-    func add<V>(path: String, content: @escaping (RoutingInfo) throws -> V) where V: View {
+    func add<V>(path: String, transition: SceneTransition?, content: @escaping (RoutingInfo) throws -> V) where V: View {
         routes[.init(path)] = .init() { info, delegate in
             do {
-                delegate.present(transition: nil, content: try content(info))
+                delegate.present(transition: transition, content: try content(info))
             } catch {
                 // TODO: Handle Error
             }
