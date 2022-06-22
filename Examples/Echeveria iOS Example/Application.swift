@@ -11,11 +11,16 @@ import Echeveria
 struct TodoListView: View {
 
     @Environment(\.navigator) var navigator
-    @Environment(\.sceneOwner) var sceneOwner
+    @Environment(\.soilController) var sceneOwner
 
     var body: some View {
         VStack {
-            Text("Todo List")
+            Text("ToDo Item")
+                .onTapGesture { navigator.move(to: "/todos/1") }
+            Text("ToDo Item")
+                .onTapGesture { navigator.move(to: "/todos/2") }
+            Text("ToDo Item")
+                .onTapGesture { navigator.move(to: "/todos/3") }
             Button(action: { sceneOwner.hideLauncher() }) {
                 Text("Hide Launcher")
             }
@@ -26,17 +31,24 @@ struct TodoListView: View {
                 Text("Open Help")
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .border(Color.red)
+        .padding()
+        .background(Color.gray.opacity(0.25).ignoresSafeArea())
     }
 }
 
 struct TodoView: View {
 
-    init(id: Int) {
+    let id: Int
 
+    init(id: Int) {
+        self.id = id
     }
 
     var body: some View {
-        Text("Todo Item View")
+        Text("Todo Item View \(id)")
     }
 }
 

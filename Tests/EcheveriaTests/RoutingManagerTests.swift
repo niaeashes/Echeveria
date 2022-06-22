@@ -31,10 +31,12 @@ class RoutingManagerTests: XCTestCase {
         XCTAssertEqual(manager.current, "/first")
         manager.push(path: "/second")
         XCTAssertEqual(manager.current, "/second")
+        XCTAssertEqual(manager.depth, 2)
         manager.pop()
         XCTAssertEqual(manager.current, "/first")
         manager.pop()
         XCTAssertEqual(manager.current, "/")
+        XCTAssertEqual(manager.depth, 0)
     }
 
     func testDebug() {
@@ -68,25 +70,6 @@ class RoutingManagerTests: XCTestCase {
         XCTAssertNotEqual(manager.current, "/article/1")
         manager.push(path: "/home")
         XCTAssertEqual(manager.current, "/article/1")
+        XCTAssertEqual(manager.depth, 1)
     }
-
-//    func testMiddleware() {
-//
-//        class TestMiddleware {
-//            func install(builder: RoutingMiddlewareBuilder) {
-//                builder.convertPath = self.convertPath
-//            }
-//
-//            func convertPath(_ path: String) -> String {
-//                "\(path)/updated"
-//            }
-//        }
-//
-//        let manager = RoutingManager()
-//        let testMiddleware = TestMiddleware()
-//        manager.addMiddleware(testMiddleware)
-//
-//        manager.push(path: "/home")
-//        XCTAssertNotEqual(manager.current, "/home/updated")
-//    }
 }

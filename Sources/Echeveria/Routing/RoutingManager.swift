@@ -23,6 +23,8 @@ class RoutingManager: ObservableObject {
         transitionSubject.eraseToAnyPublisher()
     }
 
+    var current: String { nodes[activeNodeRoot]?.path ?? "/" }
+    var depth: Int { nodes[activeNodeRoot]?.depth ?? 0 }
     init() {}
 
     init(with router: Router) {
@@ -49,13 +51,15 @@ class RoutingManager: ObservableObject {
         guard let node = nodes[activeNodeRoot] else { return assertionFailure() }
         objectWillChange.send()
         nodes[activeNodeRoot] = Stalk(root: node, path: path)
-        transitionSubject.send(.init(path: current, transition: transition))
+        transitionSubject.send(.init(path: current, transition: transition ?? PushTransition()))
     }
 
     @discardableResult
-    func pop() -> Bool {
+    func pop(transition: SceneTransition? = nil) -> Bool {
         guard let stalk = nodes[activeNodeRoot] as? Stalk else { return false }
+        objectWillChange.send()
         nodes[activeNodeRoot] = stalk.root
+        transitionSubject.send(.init(path: current, transition: transition))
         return true
     }
 
@@ -63,23 +67,24 @@ class RoutingManager: ObservableObject {
         assert(!nodes.keys.contains(path), "Warning: Multiple registrations are deprecated.")
         nodes[path] = Root(path: path)
     }
-
-    var current: String { nodes[activeNodeRoot]?.path ?? "/" }
 }
 
 private protocol Node {
     var path: String { get }
     var rootPath: String { get }
+    var depth: Int { get }
 }
 
 private struct Root: Node {
     let path: String
     var rootPath: String { path }
+    let depth: Int = 0
 }
 
 private struct Stalk: Node {
     let root: Node
     let path: String
+    var depth: Int { root.depth + 1 }
 
     var rootPath: String { root.path }
 }

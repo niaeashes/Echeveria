@@ -19,7 +19,7 @@ public struct Soil: View {
             Overlay(viewModel.router.leaves, isShowLauncher: viewModel.isShowLauncher)
         }
         .environment(\.navigator, viewModel)
-        .environment(\.sceneOwner, viewModel)
+        .environment(\.soilController, viewModel)
         #if DEBUG
         .environmentObject(viewModel.manager)
         #endif
@@ -50,7 +50,7 @@ public struct Soil: View {
         }
     }
 
-    public class ViewModel: ObservableObject, RouterDelegate, Navigator, SceneOwner {
+    public class ViewModel: ObservableObject, RouterDelegate, Navigator, SoilController {
 
         let router: Router
         let manager: RoutingManager
@@ -66,7 +66,9 @@ public struct Soil: View {
                 .store(in: &cancellables)
         }
 
-        @Published var safeAreaInsets: UIEdgeInsets = .zero
+        @Published public var safeAreaInsets: UIEdgeInsets = .zero {
+            didSet { currentViewController?.additionalSafeAreaInsets = safeAreaInsets }
+        }
         @Published var isShowLauncher = true
 
         weak var viewController: SoilViewController? = nil {
@@ -91,6 +93,8 @@ public struct Soil: View {
         }
 
         public func transitionFinish(context: SceneTransitionContext) {
+            context.source.removeFromParent()
+            context.source.view.removeFromSuperview()
             self.viewController?.currentContentViewController = context.distination
         }
 
@@ -104,7 +108,9 @@ public struct Soil: View {
 
             guard let viewController = viewController else { return assertionFailure() }
 
-            let vc = UIHostingController(rootView: content)
+            let vc = UIHostingController(rootView: content.modifier(SoilModifier(state: .init(title: "Title", backTransition: transition?.reverse))))
+
+            vc.additionalSafeAreaInsets = safeAreaInsets
 
             if let transition = transition {
                 viewController.transition(transition, owner: self, viewController: vc)
@@ -118,8 +124,58 @@ public struct Soil: View {
         }
 
         public func move(to path: String, with transition: SceneTransition) {
-            manager.push(path: path)
+            manager.push(path: path, transition: transition)
         }
+
+        public func moveToBack() {
+            print(manager)
+            manager.pop()
+        }
+    }
+}
+
+public protocol SoilController: AnyObject {
+
+    var currentViewController: UIViewController? { get }
+
+    var safeAreaInsets: UIEdgeInsets { get set }
+
+    func hideLauncher()
+    func showLauncher()
+    func transitionCancel()
+    func transitionFinish(context: SceneTransitionContext)
+}
+
+private class BlankSoilController: SoilController {
+
+    var currentViewController: UIViewController? { nil }
+    var safeAreaInsets: UIEdgeInsets = .zero
+
+    func hideLauncher() {
+        assertionFailure()
+    }
+
+    func showLauncher() {
+        assertionFailure()
+    }
+
+    func transitionCancel() {
+        assertionFailure()
+    }
+
+    func transitionFinish(context: SceneTransitionContext) {
+        assertionFailure()
+    }
+}
+
+private struct SoilControllerKey: EnvironmentKey {
+    static var defaultValue: SoilController = BlankSoilController()
+}
+
+extension EnvironmentValues {
+    public var soilController: SoilController {
+        get { self[SoilControllerKey.self] }
+        set { self[SoilControllerKey.self] = newValue }
     }
 }
 
@@ -154,7 +210,7 @@ public class SoilViewController: UIViewController {
         tryLayoutContent()
     }
 
-    func transition(_ transition: SceneTransition, owner: SceneOwner, viewController: UIViewController) {
+    func transition(_ transition: SceneTransition, owner: SoilController, viewController: UIViewController) {
         guard let source = currentContentViewController else {
             currentContentViewController = viewController
             return
@@ -176,5 +232,40 @@ public class SoilViewController: UIViewController {
             content.view.topAnchor.constraint(equalTo: parent.view.topAnchor),
             content.view.bottomAnchor.constraint(equalTo: parent.view.bottomAnchor),
         ])
+    }
+}
+
+struct SoilModifier: ViewModifier {
+
+    let state: RoutingState
+
+    @Environment(\.soilController) var soilController
+    @Environment(\.navigator) var navigator
+
+    func body(content: Content) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                if state.hasBack {
+                    Button(action: { navigator.moveToBack() }) {
+                        Image(systemName: "chevron.backward")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 16)
+                            .padding(14)
+                            .compositingGroup()
+                    }
+                } else {
+                    Spacer()
+                }
+                Spacer()
+                Spacer()
+            }
+            .frame(height: 44)
+            .padding(.horizontal, 8)
+            .overlay(Text(state.title).bold())
+            .background(Color(UIColor.systemBackground).edgesIgnoringSafeArea(.top))
+            content
+                .frame(maxHeight: .infinity)
+        }
     }
 }

@@ -9,6 +9,7 @@ struct Overlay: View {
     let launchers: Array<Leaf>
     let isShowLauncher: Bool
     @Environment(\.navigator) var navigator
+    @Environment(\.soilController) var soil
     @State var selectedLauncherIndex = 0
     @State var totalHeight: CGFloat = 100
 
@@ -54,7 +55,10 @@ struct Overlay: View {
                 .background(GeometryReader { g in
                     Color(UIColor.systemBackground)
                         .edgesIgnoringSafeArea(.bottom)
-                        .onAppear { totalHeight = g.size.height + geometry.safeAreaInsets.bottom }
+                        .onAppear {
+                            totalHeight = g.size.height + geometry.safeAreaInsets.bottom
+                            soil.safeAreaInsets.bottom = g.size.height
+                        }
                 })
                 .offset(x: 0, y: isShowLauncher ? 0 : totalHeight)
             }

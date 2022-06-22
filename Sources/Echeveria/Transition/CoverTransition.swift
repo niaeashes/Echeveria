@@ -11,6 +11,8 @@ public class CoverTransition: SceneTransition {
 
     public init() {}
 
+    public let reverse: SceneTransition? = nil
+
     public func prepare(context: SceneTransitionContext) {
 
         let owner = context.owner
@@ -40,9 +42,7 @@ public class CoverTransition: SceneTransition {
     }
 
     public func update(_ percentComplete: CGFloat, context: SceneTransitionContext) {
-        let animationConstraint = context.container.view.constraints
-            .first { $0.identifier == CONSTRAINT_IDENTIFIER }
-        animationConstraint?.constant = (1 - max(0, min(1, percentComplete))) * context.distination.view.frame.height
+        context.distination.view.layer.position = calcDistinationPosition(percentComplete: percentComplete, context: context)
     }
 
     public func cancel(context: SceneTransitionContext) {
@@ -50,12 +50,33 @@ public class CoverTransition: SceneTransition {
     }
 
     public func finish(context: SceneTransitionContext) {
+
         context.container.view.layoutIfNeeded()
-        update(1, context: context)
-        UIView.animate(withDuration: 0.25, animations: {
-            context.container.view.layoutIfNeeded()
-        }, completion: { _ in
+
+        CATransaction.begin()
+
+        let animation = CASpringAnimation(keyPath: "position")
+
+        animation.fromValue = calcDistinationPosition(percentComplete: 0, context: context)
+        animation.toValue = calcDistinationPosition(percentComplete: 1, context: context)
+        animation.initialVelocity = 0
+        animation.damping = 500
+        animation.stiffness = 1000
+        animation.mass = 3
+        animation.duration = 0.5
+
+        context.distination.view.layer.add(animation, forKey: "position")
+
+        CATransaction.setCompletionBlock {
             context.owner.transitionFinish(context: context)
-        })
+        }
+        CATransaction.commit()
+    }
+
+    private func calcDistinationPosition(percentComplete: CGFloat, context: SceneTransitionContext) -> CGPoint {
+        .init(
+            x: context.distination.view.layer.position.x,
+            y: context.distination.view.frame.height * (1.5 - min(1, max(0, percentComplete)))
+        )
     }
 }
