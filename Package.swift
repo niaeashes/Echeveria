@@ -7,6 +7,7 @@ let package = Package(
     name: "Echeveria",
     platforms: [
         .iOS(.v14),
+        .macOS(.v11),
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
@@ -23,9 +24,11 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "Echeveria",
-            dependencies: []),
+            dependencies: [],
+            path: "Sources"),
         .testTarget(
             name: "EcheveriaTests",
-            dependencies: ["Echeveria"]),
+            dependencies: ["Echeveria"],
+            path: "Tests"),
     ]
 )

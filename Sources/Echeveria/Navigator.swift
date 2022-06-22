@@ -1,68 +1,53 @@
 //
 //  Navigator.swift
-//  Conductor
 //
 
+import Foundation
 import SwiftUI
-import Combine
 
-// MARK: - Navigator Protocol
-
-// TODO: Rename
-public protocol Navigator: AnyObject {
-    func move(to: String)
-    func dismiss()
+public protocol Navigator {
+    func move(to path: String)
+    func move(to path: String, with transition: SceneTransition)
 }
 
-public extension Navigator {
+private struct BlankNavigator: Navigator {
 
-    func notification(for name: Notification.Name) -> AnyPublisher<Notification, Never> {
-        NotificationCenter.echeveria
-            .publisher(for: name)
-            .eraseToAnyPublisher()
+    func move(to path: String) {
+        assertionFailure("Uncaught path request: \(path)")
+    }
+
+    func move(to path: String, with transition: SceneTransition) {
+        assertionFailure("Uncaught path request: \(path), with transition: \(transition)")
     }
 }
 
-// MARK: - View Modifiers
+class PassthroughNavigator: Navigator {
 
-struct NavigatorModifier: ViewModifier {
+    var rootNavigator: Navigator? = nil
 
-    let navigator: Navigator
+    func move(to path: String) {
+        guard let navigator = rootNavigator else { return assertionFailure() }
+        navigator.move(to: path)
+    }
 
-    func body(content: Content) -> some View {
-        content
-            .environment(\.navigator, navigator)
+    func move(to path: String, with transition: SceneTransition) {
+        guard let navigator = rootNavigator else { return assertionFailure() }
+        navigator.move(to: path, with: transition)
     }
 }
-
-struct NavigateModifier: ViewModifier {
-
-    let path: String
-
-    @Environment(\.navigator) var navigator
-
-    func body(content: Content) -> some View {
-        content
-            .contentShape(Rectangle())
-            .onTapGesture { navigator?.move(to: path) }
-    }
-}
-
-extension View {
-    public func navigate(to path: String) -> some View {
-        modifier(NavigateModifier(path: path))
-    }
-}
-
-// MARK: - Environment Values
 
 struct NavigatorKey: EnvironmentKey {
-    static var defaultValue: Navigator? = nil
+    static var defaultValue: Navigator = BlankNavigator()
 }
 
 extension EnvironmentValues {
-    public var navigator: Navigator? {
+    public var navigator: Navigator {
         get { self[NavigatorKey.self] }
         set { self[NavigatorKey.self] = newValue }
     }
 }
+
+extension View {
+
+}
+
