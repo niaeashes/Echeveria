@@ -17,6 +17,12 @@ public struct Router {
         for routingPath in routes.keys {
             guard let info = routingPath.test(path: path), let route = routes[routingPath] else { continue }
             route.resolver(info, delegate)
+            return // Stop finding process
+        }
+
+        // Hit Not Found Route
+        if let notFoundRoute = routes[.init("!not-found")] {
+            notFoundRoute.resolver(.init(path: path, info: [:]), delegate)
         }
     }
 
@@ -27,6 +33,12 @@ public struct Router {
         for routingPath in routes.keys {
             guard let info = routingPath.test(path: routing.path), let route = routes[routingPath] else { continue }
             route.resolver(info, TransitionModifier(next: delegate, transition: transition))
+            return // Stop finding process
+        }
+
+        // Hit Not Found Route
+        if let notFoundRoute = routes[.init("!not-found")] {
+            notFoundRoute.resolver(.init(path: routing.path, info: [:]), TransitionModifier(next: delegate, transition: transition))
         }
     }
 
@@ -107,6 +119,8 @@ public class RouterBuilder {
     }
 }
 
+// MARK: - Router Environment Value
+
 struct RouterKey: EnvironmentKey {
     static var defaultValue: Router = Router(leaves: [], routes: [:])
 }
@@ -116,5 +130,12 @@ extension EnvironmentValues {
     public var router: Router {
         get { self[RouterKey.self] }
         set { self[RouterKey.self] = newValue }
+    }
+}
+
+extension View {
+
+    public func routing(@RouterBuilder router: () -> Router) -> some View {
+        environment(\.router, router())
     }
 }

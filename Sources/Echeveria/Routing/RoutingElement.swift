@@ -44,6 +44,19 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
     }
 }
 
+public struct NotFoundRoute<Scene: View>: RoutingElement, RoutingRegistry {
+
+    let scene: (RoutingInfo) throws -> Scene
+
+    public init(view: @escaping () -> Scene) {
+        self.scene = { _ in view() }
+    }
+
+    func resolve(builder: RouterBuilder) {
+        builder.add(path: "!not-found", transition: nil, content: scene)
+    }
+}
+
 struct LeafRoute<Element: RoutingElement>: RoutingElement, RoutingRegistry {
 
     let element: Element

@@ -59,7 +59,7 @@ struct TodoParameterResolver: RoutingParamParser {
     }
 
     func parse(info: RoutingInfo) throws -> Param {
-        .init(id: .init(info["id"]!)!)
+        .init(id: .init(info["id"] ?? "0") ?? 0)
     }
 }
 

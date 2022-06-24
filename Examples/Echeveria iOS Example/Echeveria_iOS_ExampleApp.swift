@@ -10,11 +10,22 @@ import Echeveria
 
 @main
 struct Echeveria_iOS_ExampleApp: App {
+
+    init() {
+        UITabBar.appearance().backgroundColor = UIColor.white
+    }
+
     var body: some Scene {
         WindowGroup {
             TabView {
-                RouteView(path: "/todos")
+                RouteView(path: "/notfound")
+                    .tabItem {
+                        Label("Todo", systemImage: "list.triangle")
+                    }
                 RouteView(path: "/setting")
+                    .tabItem {
+                        Label("Setting", systemImage: "gear")
+                    }
             }
             .routing {
                 // Route("/") { Text("Soil") }
@@ -25,6 +36,10 @@ struct Echeveria_iOS_ExampleApp: App {
 
                 Route("/todos/:id", parseBy: TodoParameterResolver()) { TodoView(id: $0.id) }
                 Route("/help", transition: CoverTransition()) { _ in HelpView() }
+
+                NotFoundRoute {
+                    Text("Not Found")
+                }
             }
         }
     }
