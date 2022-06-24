@@ -21,6 +21,7 @@ struct TodoListView: View {
                 .onTapGesture { navigator.move(to: "/todos/2") }
             Text("ToDo Item")
                 .onTapGesture { navigator.move(to: "/todos/3") }
+            NavigationLink("Link", destination: RouteView(path: "/todos/4"))
             Button(action: { sceneOwner.hideLauncher() }) {
                 Text("Hide Launcher")
             }
@@ -47,8 +48,20 @@ struct TodoView: View {
         self.id = id
     }
 
+    @Namespace var scrollSpace
+
     var body: some View {
-        Text("Todo Item View \(id)")
+        GeometryReader { geometry in
+            ZStack {
+                ScrollView {
+                    Rectangle()
+                        .frame(height: 180 + geometry.safeAreaInsets.top)
+                    Text("Todo Item View \(id)")
+                }
+                .edgesIgnoringSafeArea(.top)
+            }
+        }
+        .coordinateSpace(name: scrollSpace)
     }
 }
 

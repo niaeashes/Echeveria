@@ -73,7 +73,7 @@ public struct Soil: View {
 
         weak var viewController: SoilViewController? = nil {
             didSet {
-                router.resolve(path: manager.current, delegate: self)
+                // router.resolve(path: manager.current)
             }
         }
 
@@ -101,7 +101,7 @@ public struct Soil: View {
         private func queueTransition(_ transition: RoutingTransition) {
             DispatchQueue.main.async {
                 print(transition)
-                self.router.resolve(transition: transition, delegate: self)
+                // self.router.resolve(transition: transition, delegate: self)
             }
         }
 

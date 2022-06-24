@@ -16,13 +16,13 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
 
     let path: String
     let transition: SceneTransition?
-    let scene: (RoutingInfo) throws -> Scene
+    let scene: (RoutingInfo) -> Scene
 
     public init(_ path: String, view: @escaping () -> Scene) {
         self.init(path) { _ in view() }
     }
 
-    public init(_ path: String, transition: SceneTransition? = nil, view: @escaping (RoutingInfo) throws -> Scene) {
+    public init(_ path: String, transition: SceneTransition? = nil, view: @escaping (RoutingInfo) -> Scene) {
         var path = path
         if path[path.startIndex] != "/" {
             path = "/\(path)"
@@ -34,7 +34,7 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
 
     public init<P>(_ path: String, parseBy parameterParser: P, transition: SceneTransition? = nil, view: @escaping (P.Param) -> Scene) where P: RoutingParamParser {
         self.init(path, transition: transition) {
-            let params = try parameterParser.parse(info: $0)
+            let params = try! parameterParser.parse(info: $0)
             return view(params)
         }
     }
@@ -46,7 +46,7 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
 
 public struct NotFoundRoute<Scene: View>: RoutingElement, RoutingRegistry {
 
-    let scene: (RoutingInfo) throws -> Scene
+    let scene: (RoutingInfo) -> Scene
 
     public init(view: @escaping () -> Scene) {
         self.scene = { _ in view() }

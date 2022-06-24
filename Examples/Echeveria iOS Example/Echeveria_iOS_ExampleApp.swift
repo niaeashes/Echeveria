@@ -12,16 +12,34 @@ import Echeveria
 struct Echeveria_iOS_ExampleApp: App {
 
     init() {
-        UITabBar.appearance().backgroundColor = UIColor.white
+//        DispatchQueue.main.async {
+//            print(UINavigationBar().standardAppearance.shadowColor)
+//        }
+        do {
+            let appearance = UIBarAppearance()
+            appearance.backgroundColor = .clear
+            appearance.backgroundEffect = UIBlurEffect(style: .regular)
+            appearance.shadowColor = nil
+            UINavigationBar.appearance().standardAppearance = .init(barAppearance: appearance)
+        }
+        do {
+            let appearance = UIBarAppearance()
+            appearance.backgroundColor = .clear
+            appearance.backgroundEffect = .none
+            UINavigationBar.appearance().scrollEdgeAppearance = .init(barAppearance: appearance)
+        }
     }
 
     var body: some Scene {
         WindowGroup {
             TabView {
-                RouteView(path: "/notfound")
-                    .tabItem {
-                        Label("Todo", systemImage: "list.triangle")
-                    }
+                NavigationView {
+                    RouteView(path: "/todos")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+                .tabItem {
+                    Label("Todo", systemImage: "list.triangle")
+                }
                 RouteView(path: "/setting")
                     .tabItem {
                         Label("Setting", systemImage: "gear")

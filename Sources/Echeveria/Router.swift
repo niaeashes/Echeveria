@@ -13,33 +13,22 @@ public struct Router {
         self.routes = routes
     }
 
-    func resolve(path: String, delegate: RouterDelegate) {
+    func resolve(path: String) -> AnyView {
         for routingPath in routes.keys {
             guard let info = routingPath.test(path: path), let route = routes[routingPath] else { continue }
-            route.resolver(info, delegate)
-            return // Stop finding process
+            return route.resolver(info)
         }
 
         // Hit Not Found Route
         if let notFoundRoute = routes[.init("!not-found")] {
-            notFoundRoute.resolver(.init(path: path, info: [:]), delegate)
+            return notFoundRoute.resolver(.init(path: path, info: [:]))
         }
+
+        return AnyView(Text("Not Found"))
     }
 
-    func resolve(transition routing: RoutingTransition, delegate: RouterDelegate) {
-        guard let transition = routing.transition else {
-            return resolve(path: routing.path, delegate: delegate)
-        }
-        for routingPath in routes.keys {
-            guard let info = routingPath.test(path: routing.path), let route = routes[routingPath] else { continue }
-            route.resolver(info, TransitionModifier(next: delegate, transition: transition))
-            return // Stop finding process
-        }
-
-        // Hit Not Found Route
-        if let notFoundRoute = routes[.init("!not-found")] {
-            notFoundRoute.resolver(.init(path: routing.path, info: [:]), TransitionModifier(next: delegate, transition: transition))
-        }
+    func resolve(transition routing: RoutingTransition) -> AnyView {
+        resolve(path: routing.path)
     }
 
     class TransitionModifier: RouterDelegate {
@@ -59,7 +48,7 @@ public struct Router {
 }
 
 private struct RoutingResolver {
-    let resolver: (RoutingInfo, RouterDelegate) -> Void
+    let resolver: (RoutingInfo) -> AnyView
 }
 
 protocol RouterDelegate: AnyObject {
@@ -83,8 +72,8 @@ public struct Leaf {
 public class RouterBuilder {
 
     private init() {
-        routes[.init("/")] = .init { info, delegate in
-            delegate.present(transition: nil, content: WelcomeView())
+        routes[.init("/")] = .init { info in
+            AnyView(WelcomeView())
         }
     }
 
@@ -95,13 +84,9 @@ public class RouterBuilder {
         leaves.append(leaf)
     }
 
-    func add<V>(path: String, transition: SceneTransition?, content: @escaping (RoutingInfo) throws -> V) where V: View {
-        routes[.init(path)] = .init() { info, delegate in
-            do {
-                delegate.present(transition: transition, content: try content(info))
-            } catch {
-                // TODO: Handle Error
-            }
+    func add<V>(path: String, transition: SceneTransition?, content: @escaping (RoutingInfo) -> V) where V: View {
+        routes[.init(path)] = .init { info in
+            AnyView(content(info))
         }
     }
 
