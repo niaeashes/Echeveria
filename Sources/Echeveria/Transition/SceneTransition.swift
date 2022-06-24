@@ -13,7 +13,7 @@ public struct SceneTransitionContext {
 
 public protocol SceneTransition {
 
-    var reverse: SceneTransition? { get }
+    var backTransition: SceneTransition? { get }
 
     func prepare(context: SceneTransitionContext)
     func update(_ percentComplete: CGFloat, context: SceneTransitionContext)

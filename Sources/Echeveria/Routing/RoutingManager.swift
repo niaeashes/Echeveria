@@ -50,8 +50,10 @@ class RoutingManager: ObservableObject {
 
         guard let node = nodes[activeNodeRoot] else { return assertionFailure() }
         objectWillChange.send()
-        nodes[activeNodeRoot] = Stalk(root: node, path: path)
-        transitionSubject.send(.init(path: current, transition: transition ?? PushTransition()))
+        let stalk = Stalk(root: node, path: path, transition: transition)
+        nodes[activeNodeRoot] = stalk
+        print(stalk.transition)
+        transitionSubject.send(.init(path: current, transition: stalk.transition))
     }
 
     @discardableResult
@@ -59,7 +61,8 @@ class RoutingManager: ObservableObject {
         guard let stalk = nodes[activeNodeRoot] as? Stalk else { return false }
         objectWillChange.send()
         nodes[activeNodeRoot] = stalk.root
-        transitionSubject.send(.init(path: current, transition: transition))
+        print(stalk.path, stalk.transition)
+        transitionSubject.send(.init(path: current, transition: transition ?? stalk.transition?.backTransition))
         return true
     }
 
@@ -85,6 +88,7 @@ private struct Stalk: Node {
     let root: Node
     let path: String
     var depth: Int { root.depth + 1 }
+    var transition: SceneTransition?
 
     var rootPath: String { root.path }
 }

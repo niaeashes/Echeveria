@@ -1,15 +1,15 @@
 //
-//  CoverTransition.swift
-//
+//  DiscoverTransition.swift
+//  
 
 import UIKit
 import SwiftUI
 
-public class CoverTransition: SceneTransition {
+public class DiscoverTransition: SceneTransition {
 
     public init() {}
 
-    public let backTransition: SceneTransition? = DiscoverTransition()
+    public let backTransition: SceneTransition? = nil
 
     public func prepare(context: SceneTransitionContext) {
 
@@ -34,7 +34,7 @@ public class CoverTransition: SceneTransition {
 
         update(0, context: context)
 
-        owner.hideLauncher()
+        owner.showLauncher()
     }
 
     public func update(_ percentComplete: CGFloat, context: SceneTransitionContext) {
@@ -53,8 +53,10 @@ public class CoverTransition: SceneTransition {
 
         let animation = CASpringAnimation(keyPath: "position")
 
+        context.distination.view.layer.position = calcDistinationPosition(percentComplete: 1, context: context)
+
         animation.fromValue = calcDistinationPosition(percentComplete: 0, context: context)
-        animation.toValue = calcDistinationPosition(percentComplete: 1, context: context)
+        animation.toValue = context.distination.view.layer.position
         animation.initialVelocity = 0
         animation.damping = 500
         animation.stiffness = 1000
@@ -72,7 +74,7 @@ public class CoverTransition: SceneTransition {
     private func calcDistinationPosition(percentComplete: CGFloat, context: SceneTransitionContext) -> CGPoint {
         .init(
             x: context.distination.view.layer.position.x,
-            y: context.distination.view.frame.height * (1.5 - min(1, max(0, percentComplete)))
+            y: context.distination.view.frame.height * (0.5 + min(1, max(0, percentComplete)))
         )
     }
 }

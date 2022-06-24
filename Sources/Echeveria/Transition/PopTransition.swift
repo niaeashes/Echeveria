@@ -9,7 +9,7 @@ public struct PopTransition: SceneTransition {
 
     public init() {}
 
-    public var reverse: SceneTransition? { PushTransition() }
+    public let backTransition: SceneTransition? = nil
 
     public func prepare(context: SceneTransitionContext) {
 
@@ -66,8 +66,10 @@ public struct PopTransition: SceneTransition {
         do {
             let animation = CASpringAnimation(keyPath: "position")
 
+            context.source.view.layer.position = calcSourcePosition(percentComplete: 1, context: context)
+
             animation.fromValue = calcSourcePosition(percentComplete: 0, context: context)
-            animation.toValue = calcSourcePosition(percentComplete: 1, context: context)
+            animation.toValue = context.source.view.layer.position
             setupSpring(animation)
 
             context.source.view.layer.add(animation, forKey: "position")

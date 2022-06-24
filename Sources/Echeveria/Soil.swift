@@ -100,6 +100,7 @@ public struct Soil: View {
 
         private func queueTransition(_ transition: RoutingTransition) {
             DispatchQueue.main.async {
+                print(transition)
                 self.router.resolve(transition: transition, delegate: self)
             }
         }
@@ -108,7 +109,7 @@ public struct Soil: View {
 
             guard let viewController = viewController else { return assertionFailure() }
 
-            let vc = UIHostingController(rootView: content.modifier(SoilModifier(state: .init(title: "Title", backTransition: transition?.reverse))))
+            let vc = UIHostingController(rootView: content.modifier(SoilModifier(state: .init(title: "Title", backTransition: transition?.backTransition))))
 
             vc.additionalSafeAreaInsets = safeAreaInsets
 
@@ -128,7 +129,6 @@ public struct Soil: View {
         }
 
         public func moveToBack() {
-            print(manager)
             manager.pop()
         }
     }
@@ -189,8 +189,12 @@ public class SoilViewController: UIViewController {
         }
         didSet {
             guard let vc = currentContentViewController else { return }
-            addChild(vc)
-            view.addSubview(vc.view)
+            if vc.parent != self {
+                addChild(vc)
+            }
+            if vc.view.superview != view {
+                view.addSubview(vc.view)
+            }
             tryLayoutContent()
         }
     }

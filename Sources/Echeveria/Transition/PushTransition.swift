@@ -11,7 +11,7 @@ public struct PushTransition: SceneTransition {
 
     public init() {}
 
-    public var reverse: SceneTransition? { PopTransition() }
+    public var backTransition: SceneTransition? { PopTransition() }
 
     public func prepare(context: SceneTransitionContext) {
 
