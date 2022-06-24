@@ -106,3 +106,15 @@ public class RouterBuilder {
         return builder.build()
     }
 }
+
+struct RouterKey: EnvironmentKey {
+    static var defaultValue: Router = Router(leaves: [], routes: [:])
+}
+
+extension EnvironmentValues {
+
+    public var router: Router {
+        get { self[RouterKey.self] }
+        set { self[RouterKey.self] = newValue }
+    }
+}

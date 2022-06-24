@@ -12,7 +12,11 @@ import Echeveria
 struct Echeveria_iOS_ExampleApp: App {
     var body: some Scene {
         WindowGroup {
-            Soil {
+            TabView {
+                RouteView(path: "/todos")
+                RouteView(path: "/setting")
+            }
+            .routing {
                 // Route("/") { Text("Soil") }
                 Route("/todos") { _ in TodoListView() }
                     .leaf(text: "Todos", systemImage: "list.triangle", placement: .launcher)
