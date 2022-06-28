@@ -13,15 +13,19 @@ struct RoutingPath {
 
     init(_ definition: String) {
         self.definition = definition
-        self.tokens = definition
-            .split(separator: RoutingPath.PATH_SEPARATOR)
-            .map {
-                if $0[$0.startIndex] == ":" {
-                    return .matcher($0[$0.index($0.startIndex, offsetBy: 1)..<$0.endIndex])
-                } else {
-                    return .solid($0)
+        if definition[definition.startIndex] == "!" {
+            self.tokens = []
+        } else {
+            self.tokens = definition
+                .split(separator: RoutingPath.PATH_SEPARATOR)
+                .map {
+                    if $0[$0.startIndex] == ":" {
+                        return .matcher($0[$0.index($0.startIndex, offsetBy: 1)..<$0.endIndex])
+                    } else {
+                        return .solid($0)
+                    }
                 }
-            }
+        }
     }
 
     enum Token {
@@ -31,6 +35,10 @@ struct RoutingPath {
 
     func test(path: String) -> RoutingInfo? {
         let elements = path.split(separator: RoutingPath.PATH_SEPARATOR)
+
+        if tokens.count == 0 {
+            return path == definition ? .init(path: path, info: [:]) : nil
+        }
 
         guard elements.count == tokens.count else { return nil }
 
