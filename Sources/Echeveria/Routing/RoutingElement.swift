@@ -15,32 +15,30 @@ protocol RoutingRegistry {
 public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
 
     let path: String
-    let transition: SceneTransition?
     let scene: (RoutingInfo) -> Scene
 
     public init(_ path: String, view: @escaping () -> Scene) {
         self.init(path) { _ in view() }
     }
 
-    public init(_ path: String, transition: SceneTransition? = nil, view: @escaping (RoutingInfo) -> Scene) {
+    public init(_ path: String, view: @escaping (RoutingInfo) -> Scene) {
         var path = path
         if path[path.startIndex] != "/" {
             path = "/\(path)"
         }
         self.path = path
         self.scene = view
-        self.transition = transition
     }
 
-    public init<P>(_ path: String, parseBy parameterParser: P, transition: SceneTransition? = nil, view: @escaping (P.Param) -> Scene) where P: RoutingParamParser {
-        self.init(path, transition: transition) {
+    public init<P>(_ path: String, parseBy parameterParser: P, view: @escaping (P.Param) -> Scene) where P: RoutingParamParser {
+        self.init(path) {
             let params = try! parameterParser.parse(info: $0)
             return view(params)
         }
     }
 
     func resolve(builder: RouterBuilder) {
-        builder.add(path: path, transition: transition, content: scene)
+        builder.add(path: path, content: scene)
     }
 }
 
@@ -53,7 +51,7 @@ public struct NotFoundRoute<Scene: View>: RoutingElement, RoutingRegistry {
     }
 
     func resolve(builder: RouterBuilder) {
-        builder.add(path: "!not-found", transition: nil, content: scene)
+        builder.add(path: "!not-found", content: scene)
     }
 }
 

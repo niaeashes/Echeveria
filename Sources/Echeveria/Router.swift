@@ -26,33 +26,10 @@ public struct Router {
 
         return AnyView(Text("Not Found"))
     }
-
-    func resolve(transition routing: RoutingTransition) -> AnyView {
-        resolve(path: routing.path)
-    }
-
-    class TransitionModifier: RouterDelegate {
-
-        let next: RouterDelegate
-        let transition: SceneTransition
-
-        init(next: RouterDelegate, transition: SceneTransition) {
-            self.next = next
-            self.transition = transition
-        }
-
-        func present<V>(transition: SceneTransition?, content: V) where V : View {
-            next.present(transition: transition ?? self.transition, content: content)
-        }
-    }
 }
 
 private struct RoutingResolver {
     let resolver: (RoutingInfo) -> AnyView
-}
-
-protocol RouterDelegate: AnyObject {
-    func present<V>(transition: SceneTransition?, content: V) where V: View
 }
 
 public struct Leaf {
@@ -84,7 +61,7 @@ public class RouterBuilder {
         leaves.append(leaf)
     }
 
-    func add<V>(path: String, transition: SceneTransition?, content: @escaping (RoutingInfo) -> V) where V: View {
+    func add<V>(path: String, content: @escaping (RoutingInfo) -> V) where V: View {
         routes[.init(path)] = .init { info in
             AnyView(content(info))
         }
