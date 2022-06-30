@@ -42,19 +42,6 @@ public struct Route<Scene: View>: RoutingElement, RoutingRegistry {
     }
 }
 
-public struct NotFoundRoute<Scene: View>: RoutingElement, RoutingRegistry {
-
-    let scene: (RoutingInfo) -> Scene
-
-    public init(view: @escaping () -> Scene) {
-        self.scene = { _ in view() }
-    }
-
-    func resolve(builder: RouterBuilder) {
-        builder.add(path: "!not-found", content: scene)
-    }
-}
-
 struct LeafRoute<Element: RoutingElement>: RoutingElement, RoutingRegistry {
 
     let element: Element
@@ -65,6 +52,25 @@ struct LeafRoute<Element: RoutingElement>: RoutingElement, RoutingRegistry {
         (element as? RoutingRegistry)?.resolve(builder: builder)
     }
 }
+
+// MARK: Not Found
+
+let NOT_FOUND_FEATURE_PATH = "!not-found"
+
+public struct NotFoundRoute<Scene: View>: RoutingElement, RoutingRegistry {
+
+    let scene: (RoutingInfo) -> Scene
+
+    public init(view: @escaping () -> Scene) {
+        self.scene = { _ in view() }
+    }
+
+    func resolve(builder: RouterBuilder) {
+        builder.add(path: NOT_FOUND_FEATURE_PATH, content: scene)
+    }
+}
+
+// MARK: Modifiers
 
 extension Route {
 
