@@ -10,25 +10,15 @@ import Echeveria
 
 struct TodoListView: View {
 
-    @Environment(\.navigator) var navigator
-    @Environment(\.soilController) var sceneOwner
+    @State var isOpenHelp = false
 
     var body: some View {
         VStack {
-            Text("ToDo Item")
-                .onTapGesture { navigator.move(to: "/todos/1") }
-            Text("ToDo Item")
-                .onTapGesture { navigator.move(to: "/todos/2") }
-            Text("ToDo Item")
-                .onTapGesture { navigator.move(to: "/todos/3") }
-            NavigationLink("Link", destination: RouteView(path: "/todos/4"))
-            Button(action: { sceneOwner.hideLauncher() }) {
-                Text("Hide Launcher")
-            }
-            Button(action: { sceneOwner.showLauncher() }) {
-                Text("Show Launcher")
-            }
-            Button(action: { navigator.move(to: "/help") }) {
+            NavigationLink("Todo Item", destination: RouteView(path: "/todos/1"))
+            NavigationLink("Todo Item", destination: RouteView(path: "/todos/2"))
+            NavigationLink("Todo Item", destination: RouteView(path: "/todos/3"))
+            NavigationLink("Todo Item", destination: RouteView(path: "/todos/4"))
+            Button(action: { withAnimation { isOpenHelp = true } }) {
                 Text("Open Help")
             }
         }
@@ -37,6 +27,7 @@ struct TodoListView: View {
         .border(Color.red)
         .padding()
         .background(Color.gray.opacity(0.25).ignoresSafeArea())
+        .sheet(isPresented: $isOpenHelp) { RouteView(path: "/help") }
     }
 }
 
