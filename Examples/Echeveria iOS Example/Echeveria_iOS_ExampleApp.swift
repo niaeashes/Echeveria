@@ -45,7 +45,8 @@ struct Echeveria_iOS_ExampleApp: App {
                         Label("Setting", systemImage: "gear")
                     }
             }
-            .routing {
+            .routing(modifier: { _ in RedFrameModifier() }) {
+
                 // Route("/") { Text("Soil") }
                 Route("/todos") { _ in TodoListView() }
                     .leaf(text: "Todos", systemImage: "list.triangle", placement: .launcher)
@@ -61,5 +62,17 @@ struct Echeveria_iOS_ExampleApp: App {
                 }
             }
         }
+    }
+}
+
+struct RedFrameModifier: ViewModifier {
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
+            .border(Color.red)
+            .padding()
+            .background(Color.gray.opacity(0.25).ignoresSafeArea())
     }
 }

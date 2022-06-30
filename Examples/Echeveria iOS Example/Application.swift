@@ -31,11 +31,6 @@ struct TodoListView: View {
                 Text("Open Help")
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-        .border(Color.red)
-        .padding()
-        .background(Color.gray.opacity(0.25).ignoresSafeArea())
         .sheet(isPresented: $isOpenHelp) { RouteView(path: "/help") }
     }
 }

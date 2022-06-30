@@ -6,9 +6,9 @@ import SwiftUI
 
 public struct Router {
     let leaves: Array<Leaf>
-    private let routes: Dictionary<RoutingPath, RoutingResolver>
+    let routes: Dictionary<RoutingPath, RoutingResolver>
 
-    fileprivate init(leaves: Array<Leaf>, routes: Dictionary<RoutingPath, RoutingResolver>) {
+    init(leaves: Array<Leaf>, routes: Dictionary<RoutingPath, RoutingResolver>) {
         self.leaves = leaves
         self.routes = routes
     }
@@ -28,7 +28,7 @@ public struct Router {
     }
 }
 
-private struct RoutingResolver {
+struct RoutingResolver {
     let resolver: (RoutingInfo) -> AnyView
 }
 
@@ -81,23 +81,6 @@ public class RouterBuilder {
     }
 }
 
-// MARK: - Router Environment Value
-
-struct RouterKey: EnvironmentKey {
-    static var defaultValue: Router = Router(leaves: [], routes: [:])
-}
-
-extension EnvironmentValues {
-
-    public var router: Router {
-        get { self[RouterKey.self] }
-        set { self[RouterKey.self] = newValue }
-    }
-}
-
-extension View {
-
-    public func routing(@RouterBuilder router: () -> Router) -> some View {
-        environment(\.router, router())
-    }
+private struct BlankViewModifier: ViewModifier {
+    func body(content: Content) -> Content { content }
 }
