@@ -11,13 +11,22 @@ import Echeveria
 struct TodoListView: View {
 
     @State var isOpenHelp = false
+    @State var nextPathInput: String = ""
+    @State var nextPath: String? = nil
 
     var body: some View {
         VStack {
+            NavigationLink(path: $nextPath)
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/1"))
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/2"))
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/3"))
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/4"))
+            Divider()
+            TextField("Goto", text: $nextPathInput)
+            Button(action: { withAnimation { nextPath = nextPathInput }}) {
+                Text("GO")
+            }
+            Divider()
             Button(action: { withAnimation { isOpenHelp = true } }) {
                 Text("Open Help")
             }
