@@ -50,7 +50,7 @@ public class RouterBuilder {
 
     private init() {
         routes[.init("/")] = .init { info in
-            AnyView(WelcomeView())
+            AnyView(EmptyView())
         }
     }
 
