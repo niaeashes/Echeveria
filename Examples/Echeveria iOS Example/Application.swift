@@ -37,6 +37,7 @@ struct TodoView: View {
     let id: Int
 
     @Environment(\.route) var route
+    @State var nextPath: String? = nil
 
     init(id: Int) {
         self.id = id
@@ -46,12 +47,16 @@ struct TodoView: View {
 
     var body: some View {
         GeometryReader { geometry in
+            NavigationLink(path: $nextPath)
             ZStack {
                 ScrollView {
                     Rectangle()
                         .frame(height: 180 + geometry.safeAreaInsets.top)
                     Text("Todo Item View \(id)")
                     Text("Path: \(route.path)")
+                    Button(action: { nextPath = route.join("./comments") }) {
+                        Text("Comments")
+                    }
                 }
                 .edgesIgnoringSafeArea(.top)
             }

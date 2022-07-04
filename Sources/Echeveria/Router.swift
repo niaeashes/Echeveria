@@ -9,9 +9,12 @@ let QUERY_STARTER: Character = "?"
 let QUERY_PAIR_CHARACTER: Character = "="
 let QUERY_SEPARATOR: Character = "&"
 let FEATURE_PATH_PREFIX: Character = "!"
+let CURRENT_PATH_ALIAS: Character = "."
+let RELATIVE_PATH_PREFIX = CURRENT_PATH_ALIAS
 
 let BLANK_FEATURE_PATH = "\(FEATURE_PATH_PREFIX)blank"
 let NOT_FOUND_FEATURE_PATH = "\(FEATURE_PATH_PREFIX)not-found"
+let PARENT_PATH_ALIAS = ".."
 
 public struct Router {
 

@@ -13,6 +13,8 @@ struct DefaultNotFoundView: View {
             Text("Route Not Found")
                 .font(.title)
             #if DEBUG
+            Text(info.path)
+                .frame(maxWidth: .infinity, alignment: .leading)
             ForEach(info.errors.indices, id: \.self) { index in
                 let error = info.errors[index]
                 VStack(alignment: .leading, spacing: 4) {
