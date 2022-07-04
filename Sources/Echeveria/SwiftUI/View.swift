@@ -37,3 +37,28 @@ extension View {
             }))
     }
 }
+
+// MARK: - Full Screen Cover
+
+extension View {
+
+    func fullScreenCover(path: Binding<String?>) -> some View {
+        fullScreenCover(
+            isPresented: .init(
+                get: { path.wrappedValue != nil },
+                set: { if $0 == false { path.wrappedValue = nil } }
+            ),
+            content: { RouteView(path: path.wrappedValue ?? "") }
+        )
+    }
+
+    func fullScreenCover<Modifier>(path: Binding<String?>, modifier: Modifier) -> some View where Modifier: ViewModifier {
+        fullScreenCover(
+            isPresented: .init(
+                get: { path.wrappedValue != nil },
+                set: { if $0 == false { path.wrappedValue = nil } }
+            ),
+            content: { RouteView(path: path.wrappedValue ?? "").modifier(modifier) }
+        )
+    }
+}
