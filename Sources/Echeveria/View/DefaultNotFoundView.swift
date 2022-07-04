@@ -49,8 +49,8 @@ struct DefaultNotFoundView: View {
 struct DefaultNotFoundView_Previews: PreviewProvider {
 
     static var previews: some View {
-        DefaultNotFoundView(info: .init(path: "!not-found", info: [:], errors: []))
-        DefaultNotFoundView(info: .init(path: "!not-found", info: [:], errors: [
+        DefaultNotFoundView(info: .init(path: "!not-found", params: [:], query: [:], errors: []))
+        DefaultNotFoundView(info: .init(path: "!not-found", params: [:], query: [:], errors: [
             RoutingMismatchError(path: "/testing/path")
         ]))
     }

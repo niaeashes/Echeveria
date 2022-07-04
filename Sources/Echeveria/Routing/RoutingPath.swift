@@ -31,11 +31,15 @@ struct RoutingPath {
         case matcher(CustomStringConvertible)
     }
 
-    func test(path: String) -> RoutingInfo? {
+    func test(path pathString: String) -> RoutingInfo? {
 
         if tokens.count == 0 {
-            return path == definition ? .init(path: path, info: [:], errors: []) : nil
+            return pathString == definition ? .init(path: pathString, params: [:], query: [:], errors: []) : nil
         }
+
+        let splitedPath = pathString.split(separator: QUERY_STARTER, maxSplits: 2)
+        let path = splitedPath[0]
+        let queryStrings = (splitedPath.indices.contains(1) ? splitedPath[1] : "").split(separator: QUERY_SEPARATOR)
 
         let elements = path.split(separator: PATH_SEPARATOR)
 
@@ -54,7 +58,19 @@ struct RoutingPath {
             }
         }
 
-        return .init(path: path, info: info, errors: [])
+        var query: Dictionary<String, String> = [:]
+
+        for queryString in queryStrings {
+            let splited = queryString.split(separator: QUERY_PAIR_CHARACTER, maxSplits: 2)
+            if splited.count == 1 {
+                query[splited[0].description] = ""
+            }
+            if splited.count == 2 {
+                query[splited[0].description] = splited[1].description
+            }
+        }
+
+        return .init(path: path.description, params: info, query: query, errors: [])
     }
 }
 
