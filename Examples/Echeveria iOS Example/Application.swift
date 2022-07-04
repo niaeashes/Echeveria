@@ -8,13 +8,12 @@ import Echeveria
 
 struct TodoListView: View {
 
-    @State var isOpenHelp = false
     @State var nextPathInput: String = ""
     @State var nextPath: String? = nil
 
     var body: some View {
         VStack {
-            NavigationLink(path: $nextPath)
+            NavigationLink(path: $nextPath.except(HelpView.PATH))
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/1"))
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/2"))
             NavigationLink("Todo Item", destination: RouteView(path: "/todos/3"))
@@ -25,11 +24,11 @@ struct TodoListView: View {
                 Text("GO")
             }
             Divider()
-            Button(action: { withAnimation { isOpenHelp = true } }) {
+            Button(action: { withAnimation { nextPath = HelpView.PATH } }) {
                 Text("Open Help")
             }
         }
-        .sheet(isPresented: $isOpenHelp) { RouteView(path: "/help") }
+        .sheet(path: $nextPath.only(HelpView.PATH))
     }
 }
 
@@ -83,6 +82,9 @@ struct SettingView: View {
 }
 
 struct HelpView: View {
+
+    static let PATH = "/help"
+
     var body: some View {
         Text("Help")
     }
