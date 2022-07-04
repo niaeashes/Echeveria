@@ -12,9 +12,6 @@ import Echeveria
 struct Echeveria_iOS_ExampleApp: App {
 
     init() {
-//        DispatchQueue.main.async {
-//            print(UINavigationBar().standardAppearance.shadowColor)
-//        }
         do {
             let appearance = UIBarAppearance()
             appearance.backgroundColor = .clear
@@ -48,18 +45,16 @@ struct Echeveria_iOS_ExampleApp: App {
             .routing(modifier: { _ in RedFrameModifier() }) {
 
                 // Route("/") { Text("Soil") }
-                Route("/todos") { _ in TodoListView() }
-                    .leaf(text: "Todos", systemImage: "list.triangle", placement: .launcher)
-                Route("setting") { _ in SettingView() }
-                    .leaf(text: "Setting", systemImage: "gear", placement: .launcher)
+                Route("/todos") { TodoListView() }
+                Route("setting") { SettingView() }
 
                 Route("/todos/:id", parseBy: TodoParameterResolver()) { TodoView(id: $0.id) }
 
-                Route("/help") { _ in HelpView() }
+                Route("/help") { HelpView() }
 
-                NotFoundRoute {
-                    Text("Not Found")
-                }
+//                NotFoundRoute {
+//                    Text("Not Found")
+//                }
             }
         }
     }
@@ -73,6 +68,6 @@ struct RedFrameModifier: ViewModifier {
             .padding()
             .border(Color.red)
             .padding()
-            .background(Color.gray.opacity(0.25).ignoresSafeArea())
+            .background(Color.gray.opacity(0.1).ignoresSafeArea())
     }
 }

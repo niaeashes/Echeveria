@@ -6,18 +6,16 @@ import Foundation
 
 struct RoutingPath {
 
-    static let PATH_SEPARATOR: Character = .init("/")
-
     let definition: String
     private let tokens: Array<Token>
 
     init(_ definition: String) {
         self.definition = definition
-        if definition[definition.startIndex] == "!" {
+        if definition[definition.startIndex] == FEATURE_PATH_PREFIX {
             self.tokens = []
         } else {
             self.tokens = definition
-                .split(separator: RoutingPath.PATH_SEPARATOR)
+                .split(separator: PATH_SEPARATOR)
                 .map {
                     if $0[$0.startIndex] == ":" {
                         return .matcher($0[$0.index($0.startIndex, offsetBy: 1)..<$0.endIndex])
@@ -34,11 +32,12 @@ struct RoutingPath {
     }
 
     func test(path: String) -> RoutingInfo? {
-        let elements = path.split(separator: RoutingPath.PATH_SEPARATOR)
 
         if tokens.count == 0 {
-            return path == definition ? .init(path: path, info: [:]) : nil
+            return path == definition ? .init(path: path, info: [:], errors: []) : nil
         }
+
+        let elements = path.split(separator: PATH_SEPARATOR)
 
         guard elements.count == tokens.count else { return nil }
 
@@ -55,16 +54,7 @@ struct RoutingPath {
             }
         }
 
-        return .init(path: path, info: info)
-    }
-}
-
-public struct RoutingInfo {
-    let path: String
-    let info: Dictionary<String, String>
-
-    public subscript(_ name: String) -> String? {
-        info[name]
+        return .init(path: path, info: info, errors: [])
     }
 }
 

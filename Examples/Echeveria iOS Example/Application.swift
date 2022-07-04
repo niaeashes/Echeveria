@@ -67,7 +67,10 @@ struct TodoParameterResolver: RoutingParamParser {
     }
 
     func parse(info: RoutingInfo) throws -> Param {
-        .init(id: .init(info["id"] ?? "0") ?? 0)
+        guard let idValue = info["id"], let id = Int(idValue) else {
+            throw InvalidPathFieldError(path: info.path)
+        }
+        return .init(id: id)
     }
 }
 
