@@ -34,7 +34,7 @@ struct RoutingPath {
     func test(path pathString: String) -> RoutingInfo? {
 
         if tokens.count == 0 {
-            return pathString == definition ? .init(path: pathString, info: [:], query: [:], errors: []) : nil
+            return pathString == definition ? .init(path: pathString, params: [:], query: [:], errors: []) : nil
         }
 
         let splitedPath = pathString.split(separator: QUERY_STARTER, maxSplits: 2)
@@ -70,7 +70,7 @@ struct RoutingPath {
             }
         }
 
-        return .init(path: path.description, info: info, query: query, errors: [])
+        return .init(path: path.description, params: info, query: query, errors: [])
     }
 }
 

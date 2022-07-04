@@ -38,7 +38,7 @@ public struct Router {
     }
 
     func resolveNotFound(originalPath: String, errors: Array<Error>) -> AnyView {
-        let info = RoutingInfo(path: originalPath, info: [:], query: [:], errors: errors)
+        let info = RoutingInfo(path: originalPath, params: [:], query: [:], errors: errors)
         return (try? routes[.init(NOT_FOUND_FEATURE_PATH)]?.resolver(info)) ?? AnyView(DefaultNotFoundView(info: info))
     }
 }
@@ -46,7 +46,7 @@ public struct Router {
 // MARK: - Utilities
 
 struct RouteInfoKey: EnvironmentKey {
-    static var defaultValue: RoutingInfo = .init(path: BLANK_FEATURE_PATH, info: [:], query: [:], errors: [])
+    static var defaultValue: RoutingInfo = .init(path: BLANK_FEATURE_PATH, params: [:], query: [:], errors: [])
 }
 
 extension EnvironmentValues {
