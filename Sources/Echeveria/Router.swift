@@ -5,8 +5,12 @@
 import SwiftUI
 
 let PATH_SEPARATOR: Character = "/"
+let QUERY_STARTER: Character = "?"
+let QUERY_PAIR_CHARACTER: Character = "="
+let QUERY_SEPARATOR: Character = "&"
 let FEATURE_PATH_PREFIX: Character = "!"
 
+let BLANK_FEATURE_PATH = "\(FEATURE_PATH_PREFIX)blank"
 let NOT_FOUND_FEATURE_PATH = "\(FEATURE_PATH_PREFIX)not-found"
 
 public struct Router {
@@ -34,8 +38,22 @@ public struct Router {
     }
 
     func resolveNotFound(originalPath: String, errors: Array<Error>) -> AnyView {
-        let info = RoutingInfo(path: originalPath, info: [:], errors: errors)
+        let info = RoutingInfo(path: originalPath, info: [:], query: [:], errors: errors)
         return (try? routes[.init(NOT_FOUND_FEATURE_PATH)]?.resolver(info)) ?? AnyView(DefaultNotFoundView(info: info))
+    }
+}
+
+// MARK: - Utilities
+
+struct RouteInfoKey: EnvironmentKey {
+    static var defaultValue: RoutingInfo = .init(path: BLANK_FEATURE_PATH, info: [:], query: [:], errors: [])
+}
+
+extension EnvironmentValues {
+
+    public var route: RoutingInfo {
+        get { self[RouteInfoKey.self] }
+        set { self[RouteInfoKey.self] = newValue }
     }
 }
 
@@ -58,7 +76,7 @@ public class RouterBuilder {
 
     func add<V>(path: String, content: @escaping (RoutingInfo) throws -> V) where V: View {
         routes[.init(path)] = .init { info in
-            AnyView(try content(info))
+            AnyView(try content(info).environment(\.route, info))
         }
     }
 

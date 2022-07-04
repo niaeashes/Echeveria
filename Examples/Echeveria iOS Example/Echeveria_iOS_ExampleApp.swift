@@ -2,8 +2,6 @@
 //  Echeveria_iOS_ExampleApp.swift
 //  Shared
 //
-//  Created by shota-nagasaki on 2022/06/17.
-//
 
 import SwiftUI
 import Echeveria

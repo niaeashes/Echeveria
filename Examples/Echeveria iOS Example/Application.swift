@@ -2,8 +2,6 @@
 //  Application.swift
 //  Echeveria iOS Example (iOS)
 //
-//  Created by shota-nagasaki on 2022/06/17.
-//
 
 import SwiftUI
 import Echeveria
@@ -39,6 +37,8 @@ struct TodoView: View {
 
     let id: Int
 
+    @Environment(\.route) var route
+
     init(id: Int) {
         self.id = id
     }
@@ -52,6 +52,7 @@ struct TodoView: View {
                     Rectangle()
                         .frame(height: 180 + geometry.safeAreaInsets.top)
                     Text("Todo Item View \(id)")
+                    Text("Path: \(route.path)")
                 }
                 .edgesIgnoringSafeArea(.top)
             }

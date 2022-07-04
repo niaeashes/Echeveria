@@ -32,4 +32,14 @@ class RoutingPathTests: XCTestCase {
             XCTAssertEqual(result!.info["id"], "1")
         }
     }
+
+    func testQuery() throws {
+        do {
+            let result = RoutingPath("/users/:id").test(path: "/users/1?query=value")
+            XCTAssertEqual(result!.info["id"], "1")
+            XCTAssertEqual(result!["id"], "1")
+            XCTAssertEqual(result!.query["query"], "value")
+            XCTAssertEqual(result![query: "query"], "value")
+        }
+    }
 }
