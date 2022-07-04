@@ -4,43 +4,43 @@
 
 import SwiftUI
 
+let PATH_SEPARATOR: Character = "/"
+let FEATURE_PATH_PREFIX: Character = "!"
+
+let NOT_FOUND_FEATURE_PATH = "\(FEATURE_PATH_PREFIX)not-found"
+
 public struct Router {
-    let leaves: Array<Leaf>
+
     let routes: Dictionary<RoutingPath, RoutingResolver>
 
-    init(leaves: Array<Leaf>, routes: Dictionary<RoutingPath, RoutingResolver>) {
-        self.leaves = leaves
+    init(routes: Dictionary<RoutingPath, RoutingResolver>) {
         self.routes = routes
     }
 
     func resolve(path: String) -> AnyView {
+
+        var errors: Array<Error> = []
+
         for routingPath in routes.keys {
             guard let info = routingPath.test(path: path), let route = routes[routingPath] else { continue }
-            return route.resolver(info)
+            do {
+                return try route.resolver(info)
+            } catch {
+                errors.append(error)
+            }
         }
 
-        // Hit Not Found Route
-        if let notFoundRoute = routes[.init("!not-found")] {
-            return notFoundRoute.resolver(.init(path: path, info: [:]))
-        }
+        return resolveNotFound(originalPath: path, errors: errors)
+    }
 
-        return AnyView(Text("Not Found"))
+    func resolveNotFound(originalPath: String, errors: Array<Error>) -> AnyView {
+        let info = RoutingInfo(path: originalPath, info: [:], errors: errors)
+        return (try? routes[.init(NOT_FOUND_FEATURE_PATH)]?.resolver(info)) ?? AnyView(DefaultNotFoundView(info: info))
     }
 }
 
 struct RoutingResolver {
-    let resolver: (RoutingInfo) -> AnyView
-}
-
-public struct Leaf {
-    public let path: String
-    public let text: Text
-    public let icon: Image
-    public let placement: Placement?
-
-    public enum Placement {
-        case launcher, switcher, drawer, inspector
-    }
+    let resolver: (RoutingInfo) throws -> AnyView
 }
 
 // MARK: - Router Builder
@@ -49,26 +49,21 @@ public struct Leaf {
 public class RouterBuilder {
 
     private init() {
-        routes[.init("/")] = .init { info in
+        routes[.init("\(PATH_SEPARATOR)")] = .init { info in
             AnyView(EmptyView())
         }
     }
 
-    private var leaves: Array<Leaf> = []
     private var routes: Dictionary<RoutingPath, RoutingResolver> = [:]
 
-    func add(leaf: Leaf) {
-        leaves.append(leaf)
-    }
-
-    func add<V>(path: String, content: @escaping (RoutingInfo) -> V) where V: View {
+    func add<V>(path: String, content: @escaping (RoutingInfo) throws -> V) where V: View {
         routes[.init(path)] = .init { info in
-            AnyView(content(info))
+            AnyView(try content(info))
         }
     }
 
     func build() -> Router {
-        .init(leaves: leaves, routes: routes)
+        .init(routes: routes)
     }
 
     public static func buildBlock(_ elements: RoutingElement...) -> Router {
