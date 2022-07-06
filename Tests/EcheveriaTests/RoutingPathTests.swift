@@ -40,4 +40,21 @@ class RoutingPathTests: XCTestCase {
             XCTAssertEqual(result!.query["query"], "value")
         }
     }
+
+    func testStringHitTest() {
+
+        struct IdParser: RoutingParamParser {
+            typealias Param = Int
+
+            func parse(info: RoutingInfo) throws -> Param {
+                guard let value = info.params["id"], let id = Int(value) else {
+                    throw RoutingMismatchError(path: info.path)
+                }
+                return id
+            }
+        }
+
+        let id = "/users/:id".test("/users/10", parsedBy: IdParser())
+        XCTAssertEqual(id, 10)
+    }
 }

@@ -87,3 +87,10 @@ extension RoutingPath: Hashable {
         hasher.combine(definition)
     }
 }
+
+extension String {
+
+    public func test<Parser>(_ target: String, parsedBy parser: Parser) -> Parser.Param? where Parser: RoutingParamParser {
+        return try? RoutingPath(self).test(path: target).map { try parser.parse(info: $0) }
+    }
+}

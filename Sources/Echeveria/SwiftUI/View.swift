@@ -65,7 +65,6 @@ extension View {
 
 // MARK: - Sheet
 
-
 extension View {
 
     public func sheet(path: Binding<String?>) -> some View {
