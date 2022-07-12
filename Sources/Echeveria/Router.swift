@@ -44,6 +44,16 @@ public struct Router {
         let info = RoutingInfo(path: originalPath, params: [:], query: [:], errors: errors)
         return (try? routes[.init(NOT_FOUND_FEATURE_PATH)]?.resolver(info)) ?? AnyView(DefaultNotFoundView(info: info))
     }
+
+    public func test(path: String) -> RoutingInfo? {
+
+        for routingPath in routes.keys {
+            guard let info = routingPath.test(path: path) else { continue }
+            return info
+        }
+
+        return nil
+    }
 }
 
 // MARK: - Utilities

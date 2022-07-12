@@ -42,6 +42,8 @@ extension View {
 
 extension View {
 
+    @available(iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+    @available(macOS, unavailable)
     public func fullScreenCover(path: Binding<String?>) -> some View {
         fullScreenCover(
             isPresented: .init(
@@ -52,6 +54,8 @@ extension View {
         )
     }
 
+    @available(iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+    @available(macOS, unavailable)
     public func fullScreenCover<Modifier>(path: Binding<String?>, modifier: Modifier) -> some View where Modifier: ViewModifier {
         fullScreenCover(
             isPresented: .init(
