@@ -42,7 +42,6 @@ struct Echeveria_iOS_ExampleApp: App {
             }
             .routing(modifier: { _ in RedFrameModifier() }) {
 
-                // Route("/") { Text("Soil") }
                 Route("/todos") { TodoListView() }
                 Route("setting") { SettingView() }
 
@@ -50,9 +49,9 @@ struct Echeveria_iOS_ExampleApp: App {
 
                 Route("/help") { HelpView() }
 
-//                NotFoundRoute {
-//                    Text("Not Found")
-//                }
+                NotFoundRoute {
+                    Text("Not Found")
+                }
             }
         }
     }
