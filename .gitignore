@@ -41,6 +41,7 @@ Packages/
 Package.pins
 Package.resolved
 *.xcodeproj
+!Examples/**/*.xcodeproj
 .swiftpm/config/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 
