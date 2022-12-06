@@ -49,8 +49,12 @@ struct Echeveria_iOS_ExampleApp: App {
 
                 Route("/help") { HelpView() }
 
-                NotFoundRoute {
-                    Text("Not Found")
+                NotFoundRoute { info in
+                    VStack {
+                        Text("Not Found")
+                        Text(info.path)
+                            .font(.caption)
+                    }
                 }
             }
         }
